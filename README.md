@@ -1,6 +1,6 @@
-# Semesterarbeit: Aufbau einer End-to-End CI/CD-Pipeline mit Terraform, Helm und GitHub Actions zur Bereitstellung von Nextcloud auf Kubernetes (AWS EKS)
+# Semesterarbeit: End-to-End CI/CD-Pipeline mit Terraform, Helm und GH Actions für Nextcloud auf Kubernetes (AWS EKS)
 
-![Header Bild](D:\Nextcloud\assets\header.png)
+![Header Bild](assets\header.png)
 
 **Student:** Nenad Stevic<br>
 **TBZ Lehrgang dipl. Informatiker/in HF - 3. Semester**<br>
@@ -10,7 +10,7 @@
 
 ---
 ## 1. Einleitung
-In diesem Kapitel wird das Projekt, die Kriterien und die Vorgehensweise genauer unter die Lupe genommen. Damit wird ein Überblick über die geplante Arbeit geschaffen, was die Auswertung der Ergebnisse am Schluss vereinfachen soll.
+*In diesem Kapitel wird das Projekt, die Kriterien und die Vorgehensweise genauer unter die Lupe genommen. Damit wird ein Überblick über die geplante Arbeit geschaffen, was die Auswertung der Ergebnisse am Schluss vereinfachen soll.*
 
 ### 1.1 Problemstellung
 Das Hosten und Verwalten von Webanwendungen mit Datenbankanbindung stellt in der heutigen IT-Welt mehrere Herausforderungen dar. Mit High-Availability Infrastrukturen, welche heute in der Industrie weit verbreitet sind, muss man deutlich mehr konfigurieren und beachten, als bei "Bare Metal" Servern vor einem Jahrzehnt. Wie kann man mehrere Instanzen einer Applikation laufen lassen, und trotzdem Datenintegrität auf allen Replicas gewährleisten? Wie kann man diese verschiedenen Komponenten und Abhängigkeiten erfolgreich konfigurieren, ohne dass Fehler oder Unachtsamkeiten unterlaufen?
