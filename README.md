@@ -295,3 +295,152 @@ Die primären Stakeholder dieser Semesterarbeit sind:
 *   **Experte Fachliches Modul (IaC):** Armin Dörzbach (TBZ)
 
 Die Kommunikation erfolgt primär über den dafür vorgesehenen MS Teams Kanal. Die im Ablaufplan der TBZ definierten Einzelbesprechungen dienen als formelle Feedback- und Abstimmungstermine. Darüber hinaus wird bei Bedarf proaktiv der Kontakt zu den Experten gesucht. Der aktuelle Projektstand ist jederzeit über das GitHub Repository einsehbar. Wichtige Entscheidungen oder Änderungen am Scope werden mit den Experten abgestimmt und dokumentiert.
+
+---
+## 3. Evaluation
+*Hier begründe ich meine Technologie-Wahl und erkläre die theoretischen Konzepte dahinter.*
+
+### 3.1 Evaluation von Lösungen
+*Warum AWS, EKS, Terraform, Helm und GitHub Actions? Hier steht's, mit kurzen Vergleichen zu Alternativen.*
+#### 3.1.1 Cloud Provider (AWS)
+#### 3.1.2 Container Orchestrierung (Kubernetes - EKS)
+#### 3.1.3 Infrastructure as Code (Terraform)
+#### 3.1.4 Application Configuration Management (Helm)
+#### 3.1.5 CI/CD Werkzeug (GitHub Actions)
+
+### 3.2 Theoretische Grundlagen
+*Die wichtigsten Konzepte, die für dieses Projekt relevant sind, kurz und knackig erklärt.*
+#### 3.2.1 Infrastructure as Code (IaC) - Prinzipien
+#### 3.2.2 CI/CD - Konzepte und Phasen
+#### 3.2.3 Kubernetes - Kernkomponenten (für Nextcloud relevant)
+#### 3.2.4 Helm - Charts, Releases, Templates
+#### 3.2.5 Nextcloud auf Kubernetes - Architekturüberlegungen
+
+### 3.3 System-Design / Architektur
+*Wie das alles zusammenspielt – visualisiert mit Diagrammen.*
+#### 3.3.1 Logische Gesamtarchitektur
+*   *(Platzhalter für Diagramm aus `./assets/images/logical_architecture.png` und Beschreibung)*
+#### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
+*   *(Platzhalter für Diagramm aus `./assets/images/vpc_architecture.png` und Beschreibung)*
+#### 3.3.3 Komponenten und Datenflüsse
+*   *(Kurze Beschreibung der Hauptkomponenten und wie sie interagieren)*
+
+---
+## 4. Implementierung und Technische Umsetzung
+*Hier geht's ans Eingemachte: Wie habe ich die Lösung technisch realisiert? Mit Code-Beispielen!*
+
+### 4.1 Infrastruktur-Provisionierung mit Terraform
+*Aufbau der AWS-Infrastruktur Schritt für Schritt mit Terraform.*
+#### 4.1.1 Terraform Code-Struktur und Module
+*   *(Übersicht der Ordnerstruktur in `src/terraform/`, verwendete Module)*
+#### 4.1.2 Provisionierung des Netzwerks (VPC)
+*   *(Wichtige Code-Snippets, Entscheidungen)*
+#### 4.1.3 Provisionierung des EKS Clusters und der ECR
+*   *(Wichtige Code-Snippets, Entscheidungen)*
+#### 4.1.4 Provisionierung der RDS Datenbank und IAM-Rollen
+*   *(Wichtige Code-Snippets, Entscheidungen)*
+#### 4.1.5 Secrets Management für Terraform (AWS Credentials in CI/CD)
+*   *(Gewählter Ansatz)*
+
+### 4.2 Nextcloud Helm Chart Entwicklung
+*Das massgeschneiderte Helm Chart für Nextcloud.*
+#### 4.2.1 Helm Chart Struktur (`Chart.yaml`, `values.yaml`, `templates/`)
+#### 4.2.2 Wichtige Templates (Deployment, Service, PVC, ConfigMap, Secrets)
+*   *(Vorstellung der Kern-Templates mit Snippets und Erklärungen)*
+#### 4.2.3 Konfigurationsmöglichkeiten über `values.yaml`
+*   *(Beispiele für wichtige Parameter)*
+
+### 4.3 CI/CD Pipeline mit GitHub Actions
+*Die Automatisierung des Deployments.*
+#### 4.3.1 Workflow-Definition (`*.yml` Datei)
+*   *(Trigger, Jobs, Steps – mit relevanten YAML-Snippets)*
+#### 4.3.2 Authentifizierung gegenüber AWS (OIDC)
+#### 4.3.3 Integrationsschritte (Terraform, Helm)
+#### 4.3.4 Secrets Management in der Pipeline
+
+### 4.4 Installation und Inbetriebnahme der Gesamtlösung
+*Eine Schritt-für-Schritt-Anleitung, um das Projekt von Null aufzusetzen.*
+#### 4.4.1 Voraussetzungen
+#### 4.4.2 Klonen des Repositorys
+#### 4.4.3 Konfiguration von Umgebungsvariablen/Secrets
+#### 4.4.4 Ausführen der Pipeline / Manuelle Schritte (falls nötig)
+#### 4.4.5 Zugriff auf die Nextcloud Instanz
+
+### 4.5 Anpassung von Software / Konfiguration von Geräten
+*Spezifische Konfigurationen, die über Standard-Deployments hinausgehen.*
+#### 4.5.1 Nextcloud-spezifische Konfigurationen (via Helm)
+#### 4.5.2 Wichtige AWS Service-Konfigurationen
+
+---
+## 5. Testing und Qualitätssicherung
+*Wie wurde sichergestellt, dass die Lösung funktioniert und den Anforderungen entspricht?*
+
+### 5.1 Teststrategie
+*Welche Testebenen und -arten wurden angewendet?*
+#### 5.1.1 Statische Code-Analyse (Linting)
+#### 5.1.2 Validierung der Infrastruktur-Konfiguration (`terraform validate/plan`, `helm template`)
+#### 5.1.3 Manuelle Funktionstests der Nextcloud Instanz
+#### 5.1.4 End-to-End Tests der CI/CD Pipeline
+
+### 5.2 Testfälle und Protokolle
+*Konkrete Testfälle mit erwarteten und tatsächlichen Ergebnissen.*
+
+#### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
+*   *(Hier können zentrale Screenshots/GIFs eingebettet werden, die in `./assets/images/tests/` liegen)*
+
+---
+## 6. Projektdokumentation (Zusammenfassung)
+*Diese `README.md` dient als zentrale Projektdokumentation. Alle relevanten Informationen, Entscheidungen und Ergebnisse sind hier festgehalten oder direkt verlinkt.*
+
+### 6.1 Verzeichnisse und Zusammenfassungen
+*Das Inhaltsverzeichnis am Anfang dieser Datei bietet eine schnelle Navigation. Die wesentlichen Zusammenfassungen finden sich in den jeweiligen Kapiteln und Sprint-Abschnitten.*
+
+### 6.2 Quellenangaben und verwendete Werkzeuge
+*Auflistung externer Quellen, wichtiger Tutorials oder Dokumentationen, die herangezogen wurden (sofern nicht direkt im Text erwähnt). Sowie eine Liste der Kernwerkzeuge.*
+
+---
+## 7. Reflexion und Erkenntnisse
+*Ein kritischer Rückblick auf das Projekt, den Prozess und die persönlichen Lernerfahrungen.*
+
+### 7.1 Abgleich von Theorie und Praxis
+*Wie gut liessen sich die im Studium erlernten Theorien in diesem praktischen Projekt anwenden? Welche Diskrepanzen oder Herausforderungen traten auf?*
+
+### 7.2 Eigene Erfahrungen und persönlicher Lernprozess
+*Was waren die grössten persönlichen Lernerfolge? Welche technischen oder methodischen Hürden mussten überwunden werden?*
+
+### 7.3 Bewertung der eigenen Lösung und Verbesserungspotenzial
+*Eine kritische Einschätzung der entwickelten Lösung: Stärken, Schwächen, Limitationen. Welche Aspekte wurden bewusst vereinfacht oder weggelassen (Scope)?*
+
+### 7.4 Handlungsempfehlungen für das weitere Vorgehen
+*Welche nächsten Schritte wären sinnvoll, um das Projekt weiterzuentwickeln oder die Lösung zu verbessern (z.B. für einen produktiven Einsatz)?*
+
+---
+## 8. Anhänge
+*Zusätzliche Materialien, die das Verständnis unterstützen oder für die Nachvollziehbarkeit relevant sind.*
+
+### 8.1 Verwendete Scrum-Vorlagen (Templates)
+*Die hier aufgeführten Markdown-Vorlagen dienten als Grundlage und Inspiration für die Dokumentation der Scrum-Zeremonien und Artefakte.*
+* [Sprint Planning Vorlage](docs/templates/sprint_planning.md)
+* [Daily Scrum Log Vorlage](docs/templates/daily_scrum.md)
+* [Sprint Review Vorlage](docs/templates/sprint_review.md)
+* [Sprint Retrospektive Vorlage](docs/templates/sprint_retro.md)
+* [User Story Vorlage](docs/templates/user_story.md)
+
+### 8.2 Weitere Referenzen (Optional)
+*Platz für zusätzliche Links, interessante Artikel oder Dokumente, die im Projektkontext relevant waren.*
+
+### 8.3 Link zum GitHub Repository
+*Der vollständige Quellcode und diese Dokumentation sind öffentlich zugänglich unter: [DEIN GITHUB REPO LINK HIER]*
+
+### 8.4 Link zum GitHub Project Board (Kanban/Scrum Board)
+*Der aktuelle Stand der Aufgaben und das Product/Sprint Backlog sind einsehbar unter: [DEIN GITHUB PROJECT BOARD LINK HIER]*
+
+---
+
+**Selbstständigkeitserklärung**
+
+Ich erkläre hiermit, dass ich die vorliegende Semesterarbeit selbstständig und ohne fremde Hilfe verfasst und keine anderen als die angegebenen Quellen und Hilfsmittel benutzt habe. Alle Stellen, die dem Wortlaut oder dem Sinn nach anderen Werken entnommen sind, wurden unter Angabe der Quelle kenntlich gemacht.
+
+Ort, Datum Nenad Stevic
+
+---
