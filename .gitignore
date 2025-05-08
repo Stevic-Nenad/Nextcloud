@@ -1,1 +1,44 @@
+### JetBrains IDEs ###
 .idea/
+.fleet/
+
+### Terraform ###
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfstate.lock.info
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+### Kubernetes/Helm ###
+kubeconfig*
+.kube/
+*.kubeconfig
+charts/*.tgz
+.helm/
+
+### AWS ###
+.aws/
+aws.json
+credentials
+config
+
+### Docker ###
+.docker/
+*.env
+.env
+.dockerignore
+
+### Node.js ###
+node_modules/
+jspm_packages/
+.npm/
+.node_repl_history
