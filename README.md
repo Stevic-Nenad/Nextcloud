@@ -73,6 +73,10 @@ Zur Sicherstellung der Realisierbarkeit innerhalb des vorgegebenen Zeitrahmens w
 ### 2.1 Scrum
 Für die Durchführung dieser Semesterarbeit wird das agile Framework **Scrum** angewandt. Scrum ermöglicht eine flexible Reaktion auf sich ändernde Anforderungen, fördert die konstante Lieferung von Fortschritten und legt einen starken Fokus auf Transparenz. Obwohl Scrum primär für Teams konzipiert ist, werden die Prinzipien und Praktiken hier konsquent in einer Einzelarbeit simuliert. Scrum ist heutzutage der Standard im IT-Umfeld, da es eine strukturierte Herangehensweise an komplexe Projekte bietet und die iterative Entwicklung des Produkts unterstützt.
 
+#### Product Goal
+Das übergeordnete Ziel dieses Projekts (Product Goal) ist:
+*"Bis zum 09.07.2025 eine vollautomatisierte End-to-End CI/CD-Pipeline mit Terraform, Helm und GitHub Actions zu implementieren, die eine funktionale, extern erreichbare und persistent datenspeichernde Nextcloud-Instanz auf einem AWS EKS Kubernetes-Cluster bereitstellt und verwaltet. Die gesamte Lösung ist als Infrastructure as Code versioniert und der Entwicklungsprozess folgt konsequent den Scrum-Prinzipien.
+
 #### 2.1.1 Rollen
 Im Rahmen dieser Semesterarbeit werden alle Scrum-Rollen durch den Studierenden (Nenad Stevic) wahrgenommen. Die klare Abgrenzung und Erfüllung der jeweiligen Verantwortlichkeiten ist für die Integrität der Arbeit entscheidend:
 
@@ -94,7 +98,7 @@ Alle Scrum Zeremonien werden zeitlich begrenzt (Time-boxed) und konsequent durch
 *   **Daily Scrum:** Ein tägliches, maximal 15-minütiges Meeting des Dev-Teams (und des SM), um den Fortschritt in Richtung Sprint-Ziel zu synchronisieren und Impediments zu identifizieren. Es werden die drei Fragen beantwortet: Was wurde gestern erreicht? Was wird heute getan? Gibt es Hindernisse?
 *   **Sprint Review:** Am Ende jedes Sprints wird das Inkrement den Stakeholdern (hier den Fachexperten und dem Projektmanagement-Experten, repräsentiert durch den PO in der Vorbereitung) präsentiert. Es wird Feedback eingeholt, und das Product Backlog wird bei Bedarf angepasst.
 *   **Sprint Retrospective:** Nach dem Sprint Review und vor dem nächsten Sprint Planning reflektiert das Scrum Team (PO, SM, Dev-Team) den vergangenen Sprint. Ziel ist es, den Prozess kontinuierlich zu verbessern, indem positive Aspekte identifiziert und Massnahmen zur Optimierung für den nächsten Sprint abgeleitet werden.
-
+*   **Backlog Refinement (Product Backlog Grooming):** Obwohl nicht immer als formale Zeremonie bei Einzelarbeiten durchgeführt, wird im Laufe jedes Sprints kontinuierlich Zeit für das Product Backlog Refinement eingeplant. Dies beinhaltet das Detaillieren und Schätzen von User Stories für kommende Sprints sowie das ggf. Aufteilen grosser Stories, um das Product Backlog stets in einem "ready" Zustand zu halten.
 Die detaillierten Protokolle und Ergebnisse jedes Scrum Events werden im Abschnitt [2.3 Sprint-Durchführung und Dokumentation](#23-sprint-durchführung-und-dokumentation) für den jeweiligen Sprint dokumentiert. Vorlagen für diese Protokolle finden sich im [Anhang 8.1](#81-verwendete-scrum-vorlagen-templates).
 
 #### 2.1.4 Definition of Done (DoD)
@@ -108,6 +112,21 @@ Die Definition of Done (DoD) ist ein gemeinsames Verständnis darüber, wann ein
 *   Alle Akzeptanzkriterien des zugehörigen User Story sind erfüllt.
 *   Die relevante Dokumentation (dieses README, Diagramme, Setup-Anleitungen) wurde aktualisiert, um die Änderungen widerzuspiegeln.
 *   Das PBI wurde auf dem GitHub Project Board in die Spalte "Done" verschoben.
+
+#### 2.1.5 Definition of Ready (DoR)
+Die Definition of Ready (DoR) beschreibt, wann ein Product Backlog Item (PBI) – in diesem Projekt eine User Story – bereit ist, in ein Sprint Planning Meeting aufgenommen und potenziell für einen Sprint ausgewählt zu werden. Sie stellt sicher, dass die User Story ausreichend vorbereitet und verstanden ist, um eine effiziente Planung und Umsetzung im Sprint zu ermöglichen.
+
+Für diese Semesterarbeit gilt folgende initiale Definition of Ready:
+
+*   **Klar formuliert:** Das PBI ist als User Story im Format "Als [Rolle] möchte ich [Ziel], damit [Nutzen]" formuliert.
+*   **Verstanden:** Die User Story ist vom Development Team (Student in Entwicklerrolle) inhaltlich verstanden. Unklarheiten wurden im Vorfeld (z.B. im Backlog Refinement) geklärt.
+*   **Akzeptanzkriterien definiert:** Klare, spezifische und testbare Akzeptanzkriterien sind für die User Story formuliert.
+*   **Abhängigkeiten bekannt:** Mögliche Abhängigkeiten zu anderen User Stories oder externen Faktoren sind identifiziert und soweit möglich geklärt.
+*   **Geschätzt:** Die User Story wurde vom Development Team (Student) mit Story Points (oder einer anderen vereinbarten Einheit) geschätzt.
+*   **Klein genug (INVEST - Small):** Die User Story ist so zugeschnitten, dass sie realistischerweise innerhalb eines Sprints vom Development Team (Student) abgeschlossen werden kann. Ist sie zu gross, wurde sie im Backlog Refinement bereits in kleinere, handhabbare User Stories aufgeteilt.
+*   **Wertstiftend (INVEST - Valuable):** Die User Story liefert einen erkennbaren Wert für das Produkt oder das Projektziel.
+*   **Testbar (INVEST - Testable):** Es ist klar, wie die Erfüllung der User Story und ihrer Akzeptanzkriterien überprüft werden kann.
+*   **Priorisiert:** Die User Story wurde vom Product Owner (Student in PO-Rolle) im Product Backlog priorisiert.
 
 ### 2.2 Projektplanung
 *Eine gute Planung ist das A und O, auch wenn man agil unterwegs ist. In diesem Kapitel wird behandelt, wie die Roadmap zur fertigen Nextcloud-Pipeline auszusehen hat.*
@@ -157,50 +176,57 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
 
 ---
 #### **Sprint 0: Bootstrap & Initialplanung**
-*   **Dauer:** 05. Mai 2025 - 09. Mai 2025
-*   **Zugehöriges Epic:** `EPIC-PROJMGMT` (primär)
-*   **Sprint-Ziel:** Etablierung der Projektinfrastruktur (Repository, `README.md`, Project Board), Definition des Scrum-Frameworks und Planung von Sprint 1.
-*   **Geplante Items (auf GitHub Board als `S0-US1` bis `S0-US3`, `S0-T1`):**
-    1.  GitHub Repository Initialisierung.
-    2.  GitHub Project Board Setup.
-    3.  Scrum-Framework in `README.md` definieren.
-    4.  Sprint 1 planen.
+*   **Dauer:** 05. Mai 2025 - 09. Mai 2025 *(Datum ggf. anpassen, wenn Sprint 0 länger dauerte)*
+*   **Zugehöriges Epic (primär):** `EPIC-PROJEKT`
+*   **Sprint Planning (simuliert am 05.05.2025):** Basierend auf den Projektanforderungen und den TBZ-Vorgaben wurden das untenstehende Sprint-Ziel und die folgenden User Stories als Sprint Backlog für Sprint 0 committet, um die Projektbasis zu schaffen.
+*   **Sprint-Ziel (committet für Sprint 0):**
+    *   "Die grundlegende Projektinfrastruktur (Repository, Scrum-Board, initiale Dokumentation) ist etabliert, das Scrum-Rahmenwerk für das Projekt ist definiert und dokumentiert, und eine erste Grobplanung (Epics, Roadmap) sowie die Detailplanung für Sprint 1 sind vorhanden, um eine solide Basis für die erfolgreiche Durchführung der Semesterarbeit zu schaffen."
+*   **Sprint Backlog (committete User Stories für Sprint 0 – siehe auch [Sprint 0 auf GitHub Board](DEIN_LINK_ZUM_GITHUB_PROJECT_BOARD_HIER_ODER_FILTER_S0)):**
+    *   `Nextcloud#33`: GitHub Repository initialisieren
+    *   `Nextcloud#34`: Scrum-Rahmenwerk im README definieren
+    *   `Nextcloud#35`: Initiale Projekt- und Sprintplanung durchführen
+    *   `Nextcloud#36`: Initiale Risikoanalyse durchführen und dokumentieren
+    *   `Nextcloud#1`: GitHub Projekt-Board einrichten
+    *   `Nextcloud#3`: GitHub Issue-Vorlagen konfigurieren
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
     *   Krankheitsbedingter Ausfall am 06. & 07.05. erforderte eine Priorisierung der Kernaufgaben für das Sprint-Ziel.
-*   **Erreichtes Inkrement / Ergebnisse:**
-    *   Projekt-Repository (`[https://github.com/Stevic-Nenad/Nextcloud]`) und `README.md` Grundstruktur erstellt.
-    *   GitHub Project Board (`[https://github.com/users/Stevic-Nenad/projects/1/views/1]`) mit Epics und Sprint 0/1 Backlog Items eingerichtet.
-    *   Scrum-Prozess (Abschnitt 2.1) definiert.
-    *   Sprint 1 detailliert geplant.
-*   **Sprint Review (Kurzfazit):** Projektbasis erfolgreich gelegt, alle Sprint-0-Ziele erreicht. Grundlage für Besprechung 1 geschaffen.
-*   **Sprint Retrospektive (Wichtigste Aktion):** Notwendigkeit von Puffern für Unvorhergesehenes in der Zeitplanung erkannt.
-
+*   **Erreichtes Inkrement / Ergebnisse (Stand 09.05.2025 oder aktuelles Enddatum Sprint 0):**
+    *   Projekt-Repository (`https://github.com/Stevic-Nenad/Nextcloud`) und `README.md` Grundstruktur mit initialen Planungsartefakten (Scrum-Prozess inkl. Product Goal, DoD/DoR; Epics-Liste; Risikomatrix; initiale Technologie-Evaluation und Architekturskizze in Kap. 3) sind erstellt und committet.
+    *   GitHub Project Board (https://github.com/users/Stevic-Nenad/projects/1/views/1) mit Spalten, Product Goal, Links zu DoD/DoR, Epic-Labels, User Story Vorlagen und initialen User Stories (für Sprint 0 und Product Backlog) ist eingerichtet. (Story Points Feld hinzugefügt und Stories initial geschätzt, falls `Nextcloud#Y` erledigt).
+    *   Sprint 1 ist detailliert geplant und die entsprechenden User Stories sind im Product Backlog angelegt.
+*   **Sprint Review (Kurzfazit, Stand 09.05.2025):**
+    *   Die Projektbasis ist erfolgreich gelegt und dokumentiert. Alle oben im Sprint Backlog für Sprint 0 committeten und als erledigt markierten User Stories wurden abgeschlossen. Grundlage für die erste Besprechung mit den Experten und den Start von Sprint 1 ist geschaffen.
+*   **Sprint Retrospektive (Wichtigste Aktion, Stand 09.05.2025 oder aktuelles Enddatum Sprint 0):**
+    *   Die Notwendigkeit von Puffern für Unvorhergesehenes in der Zeitplanung wurde durch den Ausfall verdeutlicht. Zukünftige Sprintplanungen werden versuchen, dies besser zu berücksichtigen. Die detaillierte Vorab-Planung der User Stories hat geholfen, trotz Zeitdruck den Überblick zu behalten. Klare Checklisten (wie die Akzeptanzkriterien) sind sehr hilfreich.
 ---
 #### **Sprint 1: AWS Account, Lokale Umgebung & Terraform Basis-Netzwerk (VPC)**
-*   **Dauer:** 10. Mai 2025 - 24. Mai 2025 *(Beispiel, an dein Gantt anpassen, endet vor Sprint 2)*
-*   **Zugehörige Epics:** `EPIC-PROJMGMT` (AWS Account), `EPIC-TF-NET` (VPC, TF Backend)
-*   **Sprint-Ziel:** AWS Account sicher vorbereiten, lokale Entwicklungsumgebung einrichten, Terraform Remote Backend konfigurieren und ein grundlegendes AWS VPC-Netzwerk mittels Terraform Code definieren und versionieren.
-*   **Geplante Items (Details & AK auf [GitHub Project Board] als `S1-US1` bis `S1-US4`):**
-    1.  `S1-US1`: AWS Account sicher konfigurieren.
-    2.  `S1-US2`: Lokale Entwicklungsumgebung einrichten.
-    3.  `S1-US3`: Terraform Remote Backend (S3, DynamoDB) konfigurieren.
-    4.  `S1-US4`: AWS VPC-Netzwerk mit Terraform definieren.
+*   **Dauer:** [Startdatum Sprint 1] - [Enddatum Sprint 1] *(z.B. 10. Mai 2025 - 24. Mai 2025, an dein Gantt anpassen)*
+*   **Zugehörige Epics (Labels):** `EPIC-PROJEKT`, `EPIC-NETZ`
+*   **Sprint Planning (simuliert am [Datum des Plannings für Sprint 1, z.B. 09.05.2025]):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team)
+    *   **Ziel des Plannings:** Definition des Sprint-Ziels und Auswahl der User Stories für Sprint 1.
+*   **Sprint-Ziel (committet für Sprint 1):**
+    *   "Ein sicherer AWS Account und eine lokale Entwicklungsumgebung sind eingerichtet, das Terraform Remote Backend ist konfiguriert, und ein grundlegendes, korrekt getaggtes AWS VPC-Netzwerk ist mittels Terraform Code definiert, versioniert und erfolgreich provisioniert."
+*   **Sprint Backlog (committete User Stories für Sprint 1 – siehe auch [Sprint 1 auf GitHub Board](LINK_ZU_SPRINT_1_FILTER_ODER_BOARD)):**
+    *   `Nextcloud#37`: AWS Account sicher konfigurieren
+    *   `Nextcloud#38`: Lokale Entwicklungsumgebung einrichten
+    *   `Nextcloud#6`: Terraform Remote Backend konfigurieren
+    *   `Nextcloud#5`: VPC mit Subnetzen via Terraform erstellen
+    *   `Nextcloud#7`: Kosten-Tags für AWS Ressourcen definieren
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird während des Sprints hier kurz ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird am Ende des Sprints hier mit den Highlights gefüllt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird am Ende des Sprints hier ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird am Ende des Sprints hier ergänzt)*
-
 ---
 #### **Sprint 2: Terraform für EKS Cluster & ECR**
 *   **Dauer:** ca. 25. Mai 2025 - 01. Juni 2025 *(Beispiel, an dein Gantt anpassen, endet vor Besprechung 2 am 02.06.)*
 *   **Zugehörige Epics:** `EPIC-TF-K8S`
 *   **Vorläufiges Sprint-Ziel:** Den AWS EKS Kubernetes-Cluster und die AWS ECR Container Registry mittels Terraform Code automatisiert provisionieren und grundlegend konfigurieren.
 *   **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    *   Terraform-Modul für EKS Cluster erstellen/verwenden.
-    *   Node Groups definieren.
-    *   `kubectl` Zugriff auf den Cluster konfigurieren und testen.
-    *   Terraform für ECR Repository erstellen.
-    *   IAM-Rollen für EKS (Cluster Role, Node Role) definieren.
+    *   `Nextcloud#8`: EKS Cluster mit Node Groups provisionieren
+    *   `Nextcloud#9`: ECR Repository via Terraform erstellen
+    *   `Nextcloud#10`: IAM OIDC Provider für EKS konfigurieren
+    *   `Nextcloud#11`: AWS EBS CSI Driver im EKS Cluster installieren
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem EKS/ECR für Besprechung 2)*
@@ -212,11 +238,10 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
 *   **Zugehörige Epics:** `EPIC-TF-DB-IAM`, `EPIC-NC-DEPLOY`
 *   **Vorläufiges Sprint-Ziel:** Eine AWS RDS Datenbank-Instanz und die notwendigen IAM-Rollen für den Nextcloud-Zugriff mittels Terraform provisionieren. Anschliessend Nextcloud manuell auf dem EKS-Cluster bereitstellen, um die Datenbankanbindung und Datenpersistenz zu validieren.
 *   **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    *   Terraform für RDS (PostgreSQL/MySQL) erstellen (inkl. Security Groups, Parameter Groups).
-    *   Terraform für IAM-Rollen/Policies (z.B. für K8s Service Account zur DB-Authentifizierung oder EBS CSI Driver).
-    *   Manuelles Erstellen von Kubernetes Manifesten (Deployment, Service, PVC, Secrets) für Nextcloud.
-    *   Testen der Nextcloud-Installation: Login, Datei-Upload/Download, Persistenz über Pod-Neustart.
-    *   Dokumentation der manuellen Schritte als Basis für das Helm Chart.
+    *   `Nextcloud#12`: RDS PostgreSQL Instanz via Terraform provisionieren
+    *   `Nextcloud#13`: RDS Security Group konfigurieren
+    *   `Nextcloud#14`: Nextcloud manuell auf EKS deployen (PoC)
+    *   `Nextcloud#15`: Manuelle Deployment-Schritte dokumentieren
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
@@ -228,11 +253,10 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
 *   **Zugehöriges Epic:** `EPIC-HELM`
 *   **Vorläufiges Sprint-Ziel:** Entwicklung eines grundlegend funktionalen Helm Charts für die Nextcloud-Anwendung, das die Konfiguration der wichtigsten Parameter (Image, Replicas, Service Typ, DB-Verbindung, Persistenz) über `values.yaml` ermöglicht.
 *   **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    *   Helm Chart Struktur anlegen (`Chart.yaml`, `values.yaml`, `templates/`).
-    *   Templates für Deployment, Service, PersistentVolumeClaim erstellen.
-    *   Templates für ConfigMap (Nextcloud Konfig) und Secrets (DB Credentials) erstellen.
-    *   Nutzung von Helm Helpers und Best Practices.
-    *   Testen des Charts mit `helm lint`, `helm template` und `helm install` auf dem EKS Cluster.
+    *   `Nextcloud#16`: Helm Chart Grundgerüst erstellen
+    *   `Nextcloud#17`: Secrets & ConfigMaps im Helm Chart templatzieren
+    *   `Nextcloud#18`: NOTES.txt für Post-Installationshinweise erstellen
+    *   `Nextcloud#19`: Helm Tests für Nextcloud Health Check implementieren
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem Helm Chart für Besprechung 3)*
@@ -244,13 +268,11 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
 *   **Zugehörige Epics:** `EPIC-CICD`, Teile von `EPIC-ABSCHLUSS` (Testing)
 *   **Vorläufiges Sprint-Ziel:** Implementierung einer GitHub Actions CI/CD-Pipeline, die bei Änderungen im Repository automatisch das Nextcloud Helm Chart auf dem EKS-Cluster bereitstellt oder aktualisiert. Durchführung erster End-to-End-Tests.
 *   **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    *   GitHub Actions Workflow definieren (Trigger, Jobs, Steps).
-    *   Authentifizierung der Pipeline gegenüber AWS (z.B. OIDC).
-    *   Integration von Terraform `apply` (falls Infra-Änderungen Teil der Pipeline sein sollen, optional).
-    *   Integration von `helm lint`, `helm package`, `helm upgrade --install`.
-    *   Sichere Handhabung von Secrets in der Pipeline.
-    *   Automatisierte Tests (z.B. Erreichbarkeit der Nextcloud URL nach Deployment).
-    *   Manuelle End-to-End Tests (Login, Upload/Download).
+    *   `Nextcloud#20`: OIDC Authentifizierung für GitHub Actions zu AWS einrichten
+    *   `Nextcloud#21`: GitHub Actions Workflow für Helm Chart Deployment erstellen
+    *   `Nextcloud#22`: Terraform Plan/Apply in CI/CD Pipeline integrieren (optional)
+    *   `Nextcloud#23`: Pipeline Status Badge im README anzeigen
+    *   `Nextcloud#24`: Post-Deployment Check auf Nextcloud Verfügbarkeit
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
@@ -262,12 +284,14 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
 *   **Zugehöriges Epic:** `EPIC-ABSCHLUSS`
 *   **Vorläufiges Sprint-Ziel:** Abschluss aller Entwicklungsarbeiten, finales Testen der Gesamtlösung, Finalisierung der Projektdokumentation (`README.md`) und Vorbereitung der Abschlusspräsentation.
 *   **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    *   Behebung letzter Bugs oder Probleme.
-    *   Durchführung aller definierten Testfälle und Dokumentation der Ergebnisse.
-    *   Überprüfung und Vervollständigung aller Abschnitte der `README.md` (Reflexion, Anhang etc.).
-    *   Code-Aufräumarbeiten und Kommentierung.
-    *   Erstellung der Präsentationsfolien für das Kolloquium.
-    *   Üben der Präsentation/Demo.
+    *   `Nextcloud#25`: Checkliste für manuelle Regressionstests erstellen
+    *   `Nextcloud#26`: Systemarchitektur-Diagramm erstellen und pflegen (Finalisierung)
+    *   `Nextcloud#27`: Sprint-Zusammenfassungen im README pflegen (laufend)
+    *   `Nextcloud#28`: Installations- und Inbetriebnahme-Anleitung erstellen (Finalisierung)
+    *   `Nextcloud#29`: Offene Issues vor Abgabe triagieren
+    *   `Nextcloud#30`: Präsentation und Demo für Kolloquium vorbereiten
+    *   `Nextcloud#31`: Codebase finalisieren und kommentieren
+    *   `Nextcloud#32`: Reflexionskapitel im README vervollständigen
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
@@ -303,24 +327,43 @@ Die Kommunikation erfolgt primär über den dafür vorgesehenen MS Teams Kanal. 
 ### 3.1 Evaluation von Lösungen
 *Warum AWS, EKS, Terraform, Helm und GitHub Actions? Hier steht's, mit kurzen Vergleichen zu Alternativen.*
 #### 3.1.1 Cloud Provider (AWS)
+Die Wahl fiel auf AWS aufgrund der breiten Verfügbarkeit von Managed Services wie EKS (Elastic Kubernetes Service) und RDS (Relational Database Service), die für dieses Projekt zentral sind. Zudem bietet AWS umfangreiche Dokumentationen und eine grosse Community, was die Einarbeitung und Fehlersuche erleichtert. Vorhandene Grunderfahrungen mit AWS beschleunigen zudem die Umsetzung.
+
 #### 3.1.2 Container Orchestrierung (Kubernetes - EKS)
+Kubernetes ist der De-facto-Standard für Container-Orchestrierung und ermöglicht skalierbare, resiliente Deployments. AWS EKS als Managed Service reduziert den administrativen Aufwand für den Betrieb des Kubernetes-Clusters erheblich und integriert sich gut in das AWS-Ökosystem.
+
 #### 3.1.3 Infrastructure as Code (Terraform)
+Terraform wurde gewählt, da es ein Cloud-agnostisches, weit verbreitetes IaC-Werkzeug ist, das die deklarative Beschreibung und Versionierung der gesamten Infrastruktur ermöglicht. Dies fördert Wiederholbarkeit, Nachvollziehbarkeit und reduziert manuelle Fehler.
+
 #### 3.1.4 Application Configuration Management (Helm)
+Helm ist der Standard-Paketmanager für Kubernetes und vereinfacht das Definieren, Installieren und Verwalten von Kubernetes-Anwendungen. Für die Bereitstellung von Nextcloud mit seinen verschiedenen Komponenten (Deployment, Service, PVC, Secrets) ist Helm ideal, um Konfigurationen zu templatzieren und wiederverwendbar zu machen.
+
 #### 3.1.5 CI/CD Werkzeug (GitHub Actions)
+GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt gehostet wird. Dies ermöglicht eine nahtlose Automatisierung von Build-, Test- und Deployment-Prozessen bei Code-Änderungen und bietet eine gute Integration mit AWS für sichere Deployments (z.B. via OIDC).
 
 ### 3.2 Theoretische Grundlagen
 *Die wichtigsten Konzepte, die für dieses Projekt relevant sind, kurz und knackig erklärt.*
 #### 3.2.1 Infrastructure as Code (IaC) - Prinzipien
+*   Deklarative Definition der Infrastruktur als Code, Versionierung, Automatisierung der Provisionierung, Idempotenz.
+
 #### 3.2.2 CI/CD - Konzepte und Phasen
+*   Continuous Integration (automatisches Bauen und Testen bei Code-Änderungen), Continuous Deployment/Delivery (automatisiertes Ausliefern in Umgebungen). Phasen: Build, Test, Deploy.
+
 #### 3.2.3 Kubernetes - Kernkomponenten (für Nextcloud relevant)
+*   Pods, Deployments, Services (LoadBalancer/NodePort), PersistentVolumeClaims (PVCs), Secrets, ConfigMaps.
+
 #### 3.2.4 Helm - Charts, Releases, Templates
+*   Charts als Pakete, Releases als Instanzen eines Charts, Templates zur Generierung von K8s-Manifesten.
+
 #### 3.2.5 Nextcloud auf Kubernetes - Architekturüberlegungen
+*   Stateful Anwendung, benötigt persistenten Speicher für Daten und Konfiguration, Datenbankanbindung, Zugriff von extern.
 
 ### 3.3 System-Design / Architektur
 *Wie das alles zusammenspielt – visualisiert mit Diagrammen.*
 #### 3.3.1 Logische Gesamtarchitektur
+*   Eine erste Skizze der logischen Gesamtarchitektur ist in Arbeit und wird die Interaktion zwischen GitHub Actions, ECR, AWS EKS (mit Nextcloud Pods), AWS RDS und dem Endbenutzer visualisieren.
 *   *(Platzhalter für Diagramm aus `./assets/images/logical_architecture.png` und Beschreibung)*
-#### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
+* #### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
 *   *(Platzhalter für Diagramm aus `./assets/images/vpc_architecture.png` und Beschreibung)*
 #### 3.3.3 Komponenten und Datenflüsse
 *   *(Kurze Beschreibung der Hauptkomponenten und wie sie interagieren)*
