@@ -1,6 +1,6 @@
 # Semesterarbeit: End-to-End CI/CD-Pipeline mit Terraform, Helm und GH Actions für Nextcloud auf Kubernetes (AWS EKS)
 
-![Header Bild](assets\header.png)
+![Header Bild](assets/header.png)
 
 **Student:** Nenad Stevic<br>
 **TBZ Lehrgang dipl. Informatiker/in HF - 3. Semester**<br>
