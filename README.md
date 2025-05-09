@@ -158,8 +158,7 @@ Zur Sicherstellung der Realisierbarkeit innerhalb des vorgegebenen Zeitrahmens w
 Für die Durchführung dieser Semesterarbeit wird das agile Framework **Scrum** angewandt. Scrum ermöglicht eine flexible Reaktion auf sich ändernde Anforderungen, fördert die konstante Lieferung von Fortschritten und legt einen starken Fokus auf Transparenz. Obwohl Scrum primär für Teams konzipiert ist, werden die Prinzipien und Praktiken hier konsquent in einer Einzelarbeit simuliert. Scrum ist heutzutage der Standard im IT-Umfeld, da es eine strukturierte Herangehensweise an komplexe Projekte bietet und die iterative Entwicklung des Produkts unterstützt.
 
 #### Product Goal
-Das übergeordnete Ziel dieses Projekts (Product Goal) ist:
-*"Bis zum 09.07.2025 eine vollautomatisierte End-to-End CI/CD-Pipeline mit Terraform, Helm und GitHub Actions zu implementieren, die eine funktionale, extern erreichbare und persistent datenspeichernde Nextcloud-Instanz auf einem AWS EKS Kubernetes-Cluster bereitstellt und verwaltet. Die gesamte Lösung ist als Infrastructure as Code versioniert und der Entwicklungsprozess folgt konsequent den Scrum-Prinzipien.
+Bis zum 09.07.2025 eine vollautomatisierte End-to-End CI/CD-Pipeline mit Terraform, Helm und GitHub Actions zu implementieren, die eine funktionale, extern erreichbare und persistent datenspeichernde Nextcloud-Instanz auf einem AWS EKS Kubernetes-Cluster bereitstellt und verwaltet. Die gesamte Lösung ist als Infrastructure as Code versioniert und der Entwicklungsprozess folgt konsequent den Scrum-Prinzipien.
 
 #### 2.1.1 Rollen
 Im Rahmen dieser Semesterarbeit werden alle Scrum-Rollen durch den Studierenden (Nenad Stevic) wahrgenommen. Die klare Abgrenzung und Erfüllung der jeweiligen Verantwortlichkeiten ist für die Integrität der Arbeit entscheidend:
@@ -256,7 +255,7 @@ Dieser Ansatz – vom Groben ins Feine – stellt sicher, dass das Projekt einer
 Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgenden Abschnitt [2.3 Sprint-Durchführung](#23-sprint-durchführung) detailliert beschrieben.
 
 ### 2.3 Sprint-Durchführung und Dokumentation
-*Dieser Abschnitt fasst die Durchführung und die wesentlichen Ergebnisse jedes Sprints zusammen. Jeder Sprint folgt dem definierten Scrum-Zyklus (Planning, Daily Scrums, Increment-Erstellung, Review, Retrospektive). Die detaillierte Ausarbeitung der User Stories, ihrer Akzeptanzkriterien und die tägliche Aufgabenverfolgung erfolgen auf dem [GitHub Project Board]([DEIN PROJEKT BOARD LINK HIER]). Die hier skizzierten Inhalte für Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting finalisiert und committet.*
+*Dieser Abschnitt fasst die Durchführung und die wesentlichen Ergebnisse jedes Sprints zusammen. Jeder Sprint folgt dem definierten Scrum-Zyklus (Planning, Daily Scrums, Increment-Erstellung, Review, Retrospektive). Die detaillierte Ausarbeitung der User Stories, ihrer Akzeptanzkriterien und die tägliche Aufgabenverfolgung erfolgen auf dem [GitHub Project Board](https://github.com/users/Stevic-Nenad/projects/1/views/1). Die hier skizzierten Inhalte für Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting finalisiert und committet.*
 
 ---
 #### **Sprint 0: Bootstrap & Initialplanung**
@@ -447,7 +446,7 @@ GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt geh
 #### 3.3.1 Logische Gesamtarchitektur
 *   Eine erste Skizze der logischen Gesamtarchitektur ist in Arbeit und wird die Interaktion zwischen GitHub Actions, ECR, AWS EKS (mit Nextcloud Pods), AWS RDS und dem Endbenutzer visualisieren.
 *   *(Platzhalter für Diagramm aus `./assets/images/logical_architecture.png` und Beschreibung)*
-* #### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
+#### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
 *   *(Platzhalter für Diagramm aus `./assets/images/vpc_architecture.png` und Beschreibung)*
 #### 3.3.3 Komponenten und Datenflüsse
 *   *(Kurze Beschreibung der Hauptkomponenten und wie sie interagieren)*
@@ -525,6 +524,11 @@ GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt geh
 ### 6.2 Quellenangaben und verwendete Werkzeuge
 *Auflistung externer Quellen, wichtiger Tutorials oder Dokumentationen, die herangezogen wurden (sofern nicht direkt im Text erwähnt). Sowie eine Liste der Kernwerkzeuge.*
 
+### 6.3 Lizenz
+
+Der **gesamte Quellcode** dieses Projekts (Terraform, Helm-Charts, GitHub-Actions-Workflows usw.) steht unter der [MIT-Lizenz](LICENSE).  
+Die **Dokumentation** dieses Repositories ist, sofern nicht anders gekennzeichnet, ebenfalls unter MIT veröffentlicht.  
+Das verwendete Nextcloud-Docker-Image unterliegt der AGPL-3.0 (→ siehe [Nextcloud-Projekt](https://github.com/nextcloud/docker)).
 ---
 ## 7. Reflexion und Erkenntnisse
 *Ein kritischer Rückblick auf das Projekt, den Prozess und die persönlichen Lernerfahrungen.*
@@ -557,10 +561,10 @@ GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt geh
 *Platz für zusätzliche Links, interessante Artikel oder Dokumente, die im Projektkontext relevant waren.*
 
 ### 8.3 Link zum GitHub Repository
-*Der vollständige Quellcode und diese Dokumentation sind öffentlich zugänglich unter: [DEIN GITHUB REPO LINK HIER]*
+*Der vollständige Quellcode und diese Dokumentation sind öffentlich zugänglich unter: https://github.com/Stevic-Nenad/Nextcloud*
 
 ### 8.4 Link zum GitHub Project Board (Kanban/Scrum Board)
-*Der aktuelle Stand der Aufgaben und das Product/Sprint Backlog sind einsehbar unter: [DEIN GITHUB PROJECT BOARD LINK HIER]*
+*Der aktuelle Stand der Aufgaben und das Product/Sprint Backlog sind einsehbar unter: https://github.com/users/Stevic-Nenad/projects/1/views/1*
 
 ---
 
