@@ -886,6 +886,9 @@ Zum Start des Projekts (im Rahmen von User Story `Nextcloud#7`) wurden folgende 
 
 Module werden in diesem Projekt initial nicht verwendet, könnten aber bei wachsender Komplexität zur Strukturierung von wiederverwendbaren Infrastrukturkomponenten eingeführt werden.
 
+**Backend-Infrastruktur-Code:**
+Es ist wichtig zu beachten, dass die AWS-Ressourcen für das Terraform Remote Backend selbst (S3 Bucket, DynamoDB Tabelle) in einer separaten Terraform-Konfiguration verwaltet werden (z.B. in einem Verzeichnis wie `terraform-backend-setup/` oder `backend/` auf der Root-Ebene des Projekts). Dies entkoppelt die Verwaltung der Backend-Infrastruktur vom Lebenszyklus der Anwendungs-Infrastruktur. Die `src/terraform/` Konfiguration enthält lediglich die `backend.tf`-Datei, um diesen externen Backend zu nutzen.
+
 #### 4.1.1a Globale Tagging-Strategie für Kostenmanagement
 
 Um die Projektkosten im AWS Billing Dashboard klar zuordnen und nachverfolgen zu können, wurde eine einheitliche Tagging-Strategie für alle via Terraform erstellten AWS-Ressourcen implementiert. Dies erfüllt die Anforderungen der User Story `Nextcloud#7` und wurde als Teil der initialen Terraform-Provider-Konfiguration eingerichtet.
