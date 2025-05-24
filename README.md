@@ -477,6 +477,7 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * `Nextcloud#7`: Kosten-Tags für AWS Ressourcen definieren
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:**
     * AWS Free Tier Limits mussten genau geprüft werden um Kosten zu vermeiden
+    * Unterschiedliche Installationsmethoden je nach OS erforderten flexible Dokumentation
 * **Erreichtes Inkrement / Ergebnisse:**
     * AWS Root Account mit MFA gesichert
     * IAM User "terraform-admin" mit AdministratorAccess Policy erstellt
@@ -484,6 +485,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * Access Keys sicher in ~/.aws/credentials gespeichert
     * AWS Budget von $20/Monat mit Benachrichtigungen bei 80% und 100% eingerichtet
     * AWS Region eu-central-1 als Standard festgelegt und in allen Konfigurationen verwendet
+    * **Lokale Entwicklungsumgebung vollständig eingerichtet (User Story #38 ✓):**
+            - AWS CLI v2.x mit Profile "nextcloud-project"
+            - Terraform v1.9.x
+            - kubectl v1.30.x
+            - Helm v3.15.x
+            - IntelliJ Ultimate mit allen Extensions
+    * Alle Tools erfolgreich getestet und verifiziert
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
     * **Self-Review für User Story #37 durchgeführt:**
@@ -493,6 +501,14 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         - ✅ Budget-Alerts: Test-E-Mail erhalten
         - ✅ Dokumentation in Sprint 1 Abschnitt aktualisiert
         - ✅ Keine Security Keys im Repo committed
+    * **Self-Review für User Story #38 durchgeführt:**
+        - ✅ Alle Tools installiert und Versionen verifiziert
+        - ✅ AWS CLI erfolgreich mit IAM User verbunden
+        - ✅ Terraform init in Test-Verzeichnis erfolgreich
+        - ✅ kubectl config view zeigt korrekte Struktur
+        - ✅ Helm repo add stable funktioniert
+        - ✅ VS Code Extensions produktiv nutzbar
+        - ✅ Dokumentation in Sections 2.3 und 4.4.1 aktualisiert
 * **Sprint Retrospektive (Wichtigste Aktion):**
     * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
 
@@ -612,6 +628,7 @@ wurden identifiziert und mit entsprechenden Gegenmassnahmen bewertet:
 | R3 | Cloud-Kosten (Managed Kubernetes & DB-Dienste) | M | M | M | Aktives Kostenmanagement (AWS Dashboard), Nutzung kleinster möglicher Instanzgrössen, regelmässiges `terraform destroy`, **AWS Budget mit $10 Limit und E-Mail-Alerts konfiguriert** | N. Stevic | **Mitigiert** |
 | R4 | Hoher Debugging-Aufwand (Terraform, Helm, CI/CD)                        | M                                    | H                               | H                  | Inkrementelles Testen, Nutzung von `terraform plan/validate`, `helm lint/template`, GitHub Actions Debugging-Optionen, systematisches Logging.      | N. Stevic      | Offen  |
 | R5 | Komplexität des Secrets Managements über gesamten Workflow              | M                                    | H                               | H                  | Einsatz von GitHub Actions OIDC für Cloud-Authentifizierung, Kubernetes Secrets, Least Privilege Prinzip, Dokumentation des Ansatzes.               | N. Stevic      | Offen  |
+| R6 | Inkonsistente Tool-Versionen zwischen Entwicklungsumgebungen | N | M | N | Dokumentierte Versionsanforderungen, Verwendung von Version Managern (tfenv, asdf) empfohlen | N. Stevic | Mitigiert |
 
 *(Diese Risikomatrix wird bei Bedarf im Laufe des Projekts aktualisiert.)*
 
@@ -675,6 +692,13 @@ PVC, Secrets) ist Helm ideal, um Konfigurationen zu templatzieren und wiederverw
 GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt gehostet wird. Dies ermöglicht eine
 nahtlose Automatisierung von Build-, Test- und Deployment-Prozessen bei Code-Änderungen und bietet eine gute Integration
 mit AWS für sichere Deployments (z.B. via OIDC).
+
+#### 3.1.6 Entwicklungswerkzeuge und Versionen
+Für die Konsistenz und Reproduzierbarkeit wurden folgende Tool-Versionen gewählt:
+- **Terraform 1.12.x**: Neueste stabile Version mit allen erforderlichen AWS Provider Features
+- **kubectl 1.33.x**: Kompatibel mit EKS 1.30 (±1 Minor Version Regel)
+- **Helm 3.18.x**: Aktuelle v3 mit stabiler Chart v2 Unterstützung
+- **AWS CLI 2.27.x**: Moderne Version mit SSO und erweiterten Features
 
 ### 3.2 Theoretische Grundlagen
 
@@ -784,17 +808,40 @@ mit AWS für sichere Deployments (z.B. via OIDC).
 
 #### 4.4.1 Voraussetzungen
 
-* AWS Account mit MFA-gesichertem Root-Zugang
-* IAM User mit programmatischem Zugriff (AdministratorAccess)
-* AWS CLI installiert und konfiguriert
+**Erforderliche Tools:**
+* **AWS CLI v2.27.7** - Für AWS Service Interaktionen
+  ```bash
+  aws --version  # AWS CLI 2.x.x
+  ```
+* **Terraform >= 1.12.1** - Infrastructure as Code Tool
+  ```bash
+  terraform version  # Terraform v1.9.x
+  ```
+* **kubectl >= 1.33.0** - Kubernetes CLI (kompatibel mit EKS 1.30)
+  ```bash
+  kubectl version --client  # v1.30.x
+  ```
+* **Helm >= 3.18.1** - Kubernetes Package Manager
+  ```bash
+  helm version  # version.BuildInfo{Version:"v3.15.x"}
+  ```
+* **Git** - Version Control
 
-```bash
-aws configure --profile nextcloud-project
+**AWS Konfiguration:**
+* AWS Account mit aktiviertem MFA
+* IAM User mit programmatischem Zugriff
+* Konfiguriertes AWS CLI Profile:
+  ```bash
+  aws configure --profile nextcloud-project
   ```
 
-* Terraform >= 1.5.0
-* kubectl
-* helm >= 3.0
+**Empfohlene IDE:**
+* IntelliJ IDEA Ultimate mit Plugins:
+    - HashiCorp Terraform/HCL Language Support
+    - Kubernetes
+    - Docker
+    - AWS Toolkit
+    - YAML (eingebaut)
 
 #### 4.4.2 Klonen des Repositorys
 
