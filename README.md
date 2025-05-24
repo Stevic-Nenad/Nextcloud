@@ -772,9 +772,27 @@ Für die Konsistenz und Reproduzierbarkeit wurden folgende Tool-Versionen gewäh
   AWS EKS (mit Nextcloud Pods), AWS RDS und dem Endbenutzer visualisieren.
 * *(Platzhalter für Diagramm aus `./assets/images/logical_architecture.png` und Beschreibung)*
 
-#### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
+### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
 
-* *(Platzhalter für Diagramm aus `./assets/images/vpc_architecture.png` und Beschreibung)*
+Die Kern-Netzwerkinfrastruktur in AWS wird durch eine Virtual Private Cloud (VPC) gebildet. Für Hochverfügbarkeit und zur Trennung von Diensten mit direktem Internetzugriff und internen Diensten ist die VPC wie folgt strukturiert:
+
+*   **VPC:** Ein logisch isolierter Bereich im AWS-Netzwerk mit dem konfigurierbaren CIDR-Block (Standard: `10.0.0.0/16`).
+*   **Availability Zones (AZs):** Um Ausfallsicherheit zu gewährleisten, werden Ressourcen über mindestens zwei AZs verteilt (Standard: `eu-central-1a` und `eu-central-1b`).
+*   **Öffentliche Subnetze:** In jeder genutzten AZ gibt es ein öffentliches Subnetz. Diese Subnetze haben eine direkte Route zum Internet über ein gemeinsames Internet Gateway (IGW). Hier werden Ressourcen platziert, die direkt aus dem Internet erreichbar sein müssen (z.B. Load Balancer) und die NAT Gateways.
+*   **Private Subnetze:** In jeder genutzten AZ gibt es ein privates Subnetz. Diese Subnetze haben keine direkte Route zum Internet.
+*   **Internet Gateway (IGW):** Ein einzelnes IGW wird an die VPC angehängt und ermöglicht die Kommunikation zwischen Ressourcen in den öffentlichen Subnetzen und dem Internet.
+*   **NAT Gateways (pro AZ):** Um eine hohe Verfügbarkeit für ausgehenden Internetverkehr aus den privaten Subnetzen zu gewährleisten, wird **in jeder Availability Zone ein eigenes NAT Gateway** im jeweiligen öffentlichen Subnetz platziert. Jedes NAT Gateway erhält eine eigene Elastic IP.
+*   **Routing-Tabellen:**
+    *   **Öffentliche Route-Tabelle:** Eine gemeinsame Routing-Tabelle für alle öffentlichen Subnetze, die den gesamten externen Traffic (`0.0.0.0/0`) an das IGW leitet.
+    *   **Private Route-Tabellen (pro AZ):** Für jede Availability Zone existiert eine separate private Routing-Tabelle. Jede dieser Tabellen leitet den ausgehenden Traffic (`0.0.0.0/0`) aus den privaten Subnetzen dieser AZ an das NAT Gateway, das sich **in derselben AZ** befindet. Diese Strategie stellt sicher, dass der Ausfall eines NAT Gateways in einer AZ den ausgehenden Verkehr der anderen AZs nicht beeinträchtigt.
+
+Diese Architektur bietet eine solide Grundlage für hochverfügbare Anwendungen, indem sie sicherstellt, dass Ressourcen über mehrere AZs verteilt sind und der Netzwerkverkehr entsprechend geleitet wird.
+
+Das folgende Diagramm visualisiert diese Architektur:
+
+[PLATZHALTER]
+![AWS VPC Netzwerkarchitektur mit NAT Gateway pro AZ](assets/images/vpc_architecture.png)
+*(Diagramm: AWS VPC mit 2 AZs, je ein öffentliches und privates Subnetz. Ein IGW. In jedem öffentlichen Subnetz ein NAT Gateway. Eine öffentliche Routing-Tabelle. Zwei private Routing-Tabellen, die jeweils auf das NAT GW in ihrer AZ zeigen.)*
 
 #### 3.3.3 Komponenten und Datenflüsse
 
