@@ -474,7 +474,7 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * `Nextcloud#38`: Lokale Entwicklungsumgebung einrichten
     * `Nextcloud#6`: Terraform Remote Backend konfigurieren
     * `Nextcloud#5`: VPC mit Subnetzen via Terraform erstellen
-    * `Nextcloud#7`: Kosten-Tags für AWS Ressourcen definieren
+    * `Nextcloud#7`: Kosten-Tags für AWS Ressourcen definieren und initiale Terraform-Provider-Konfiguration erstellen
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:**
     * AWS Free Tier Limits mussten genau geprüft werden um Kosten zu vermeiden
     * Unterschiedliche Installationsmethoden je nach OS erforderten flexible Dokumentation
@@ -492,6 +492,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
             - Helm v3.15.x
             - IntelliJ Ultimate mit allen Extensions
     * Alle Tools erfolgreich getestet und verifiziert
+    * **Initiale Terraform-Konfiguration mit globaler Tagging-Strategie implementiert:**
+      * Grundlegende Terraform-Dateistruktur (`versions.tf`, `provider.tf`, `variables.tf`, `locals.tf`) im Verzeichnis `src/terraform/` erstellt.
+      * AWS Provider konfiguriert, inklusive der Festlegung einer Standardregion (`var.aws_region`).
+      * Standard-Tags (`Projekt: Semesterarbeit-Nextcloud`, `Student: NenadStevic`, `ManagedBy: Terraform`) wurden als lokale Terraform-Variable (`local.common_tags`) definiert.
+      * Diese Tags werden mittels des `default_tags` Blocks in der AWS Provider-Konfiguration automatisch an alle zukünftig erstellten, unterstützten Ressourcen propagiert.
+      * `terraform init` erfolgreich ausgeführt, um Provider-Plugins zu laden.
+      * Diese Konfiguration stellt die Basis für die nachfolgende Erstellung der VPC (User Story #5) dar, welche dann diese Tags automatisch erhalten wird. Die Sichtbarkeit der Tags auf Ressourcen wird im Rahmen der VPC-Erstellung verifiziert.
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
     * **Self-Review für User Story #37 durchgeführt:**
@@ -509,6 +516,12 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         - ✅ Helm repo add stable funktioniert
         - ✅ VS Code Extensions produktiv nutzbar
         - ✅ Dokumentation in Sections 2.3 und 4.4.1 aktualisiert
+    * **Self-Review für User Story #7 (Initiale TF-Konfig & Kosten-Tags) durchgeführt:**
+        - ✅ Terraform-Grundgerüst (versions, provider, variables, locals) erstellt.
+        - ✅ AC1: Standard-Tags als Terraform `locals` Variable definiert und in `default_tags` Block des AWS Providers verwendet.
+        - ✅ AC2: Automatische Propagierung durch `default_tags` ist konfiguriert und wird bei der Erstellung von Ressourcen (z.B. VPC in `Nextcloud#5`) greifen.
+        - ✅ AC3: Die Konfiguration ist bereit, um Tags auf erstellten Ressourcen sichtbar zu machen. (Finale Verifizierung erfolgt mit VPC-Erstellung).
+        - ✅ AC4: Alle DoD-Punkte erfüllt (Code implementiert, `terraform init/validate/plan` ausgeführt, Dokumentation mit diesem Schritt aktualisiert).
 * **Sprint Retrospektive (Wichtigste Aktion):**
     * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
 
@@ -754,13 +767,78 @@ Für die Konsistenz und Reproduzierbarkeit wurden folgende Tool-Versionen gewäh
 
 *Aufbau der AWS-Infrastruktur Schritt für Schritt mit Terraform.*
 
-#### 4.1.1 Terraform Code-Struktur und Module
+#### 4.1.1 Terraform Code-Struktur, Module und initiale Provider-Konfiguration
 
-* *(Übersicht der Ordnerstruktur in `src/terraform/`, verwendete Module)*
+Die Verwaltung der AWS-Infrastruktur erfolgt mittels Terraform. Der Code ist im Verzeichnis `src/terraform/` strukturiert.
+Zum Start des Projekts (im Rahmen von User Story `Nextcloud#7`) wurden folgende initiale Konfigurationsdateien erstellt:
+
+*   **`versions.tf`**: Definiert die erforderliche Terraform-Version und die Versionen der benötigten Provider (z.B. AWS Provider).
+    ```terraform
+    // src/terraform/versions.tf
+    terraform {
+      required_version = ">= 1.12.1"
+
+      required_providers {
+        aws = {
+          source  = "hashicorp/aws"
+          version = "~> 5.99.1"
+        }
+      }
+    }
+    ```
+*   **`variables.tf`**: Enthält Definitionen für Eingabevariablen, wie z.B. die AWS-Region.
+    ```terraform
+    // src/terraform/variables.tf
+    variable "aws_region" {
+      description = "The AWS region to deploy resources in."
+      type        = string
+      default     = "eu-central-1"
+    }
+    ```
+*   **`locals.tf`**: Dient zur Definition lokaler Variablen, insbesondere für die Standard-Tags. (Siehe Abschnitt [4.1.1a](#411a-globale-tagging-strategie-für-kostenmanagement)).
+*   **`provider.tf`**: Konfiguriert den AWS-Provider, einschliesslich der Region und der `default_tags` für das Kostenmanagement. (Siehe Abschnitt [4.1.1a](#411a-globale-tagging-strategie-für-kostenmanagement)).
+
+Module werden in diesem Projekt initial nicht verwendet, könnten aber bei wachsender Komplexität zur Strukturierung von wiederverwendbaren Infrastrukturkomponenten eingeführt werden.
+
+#### 4.1.1a Globale Tagging-Strategie für Kostenmanagement
+
+Um die Projektkosten im AWS Billing Dashboard klar zuordnen und nachverfolgen zu können, wurde eine einheitliche Tagging-Strategie für alle via Terraform erstellten AWS-Ressourcen implementiert. Dies erfüllt die Anforderungen der User Story `Nextcloud#7` und wurde als Teil der initialen Terraform-Provider-Konfiguration eingerichtet.
+
+**Ansatz:**
+Die Implementierung nutzt den `default_tags` Block innerhalb der AWS Provider-Konfiguration. Dieser Ansatz stellt sicher, dass ein definierter Satz von Tags automatisch an alle Ressourcen angehängt wird, die von diesem Provider erstellt werden und Tagging unterstützen.
+
+**Definition der Standard-Tags:**
+Ein Set von Standard-Tags wurde in einer lokalen Variable (`local.common_tags`) in der Datei `src/terraform/locals.tf` definiert:
+
+```terraform
+// src/terraform/locals.tf
+locals {
+  common_tags = {
+    Projekt   = "Nextcloud"
+    Student   = "NenadStevic"
+    ManagedBy = "Terraform"
+  }
+}
+```
+
+**Anwendung im AWS Provider:**
+Diese lokalen Tags werden dann im `provider "aws"` Block in der Datei `src/terraform/provider.tf` referenziert:
+```terraform
+// src/terraform/provider.tf
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = local.common_tags
+  }
+}
+```
+Durch diese zentrale Konfiguration wird sichergestellt, dass alle kostenverursachenden Ressourcen wie VPC, Subnetze, EKS-Knoten, RDS-Instanzen etc. konsistent getaggt werden, ohne dass die Tags bei jeder einzelnen Ressourcendefinition manuell hinzugefügt werden müssen. Ressourcenspezifische Tags können bei Bedarf weiterhin definiert werden und überschreiben die Default-Tags bei gleichem Schlüssel oder ergänzen sie.
 
 #### 4.1.2 Provisionierung des Netzwerks (VPC)
 
 * *(Wichtige Code-Snippets, Entscheidungen)*
+* *Bemerk: Dank der in Abschnitt 4.1.1a beschriebenen globalen Tagging-Strategie erhalten alle im Rahmen der VPC-Erstellung erzeugten Netzwerkressourcen (VPC, Subnetze etc.) automatisch die definierten Kosten-Tags.*
 
 #### 4.1.3 Provisionierung des EKS Clusters und der ECR
 
@@ -879,7 +957,21 @@ Für die Konsistenz und Reproduzierbarkeit wurden folgende Tool-Versionen gewäh
 
 ### 5.2 Testfälle und Protokolle
 
-*Konkrete Testfälle mit erwarteten und tatsächlichen Ergebnissen.*
+**Testfall: Überprüfung der Kosten-Tags auf AWS Ressourcen (Vorbereitung)**
+*   **Zugehörige User Story (Setup):** `Nextcloud#7` - Kosten-Tags für AWS Ressourcen definieren und initiale Terraform-Provider-Konfiguration erstellen.
+*   **Zugehörige User Story (Verifizierung auf Ressourcen):** `Nextcloud#5` - VPC mit Subnetzen via Terraform erstellen.
+*   **Status:** Vorbereitet. Die eigentliche Überprüfung der Tags auf den Ressourcen wird durchgeführt, sobald die ersten Ressourcen (VPC, Subnetze) mit Ticket `Nextcloud#5` erstellt wurden.
+*   **Zielsetzung (für `Nextcloud#5`):** Verifizieren, dass die im Rahmen von `Nextcloud#7` konfigurierten Standard-Tags (`Projekt`, `Student`, `ManagedBy`) korrekt auf den via Terraform erstellten Ressourcen (initial VPC, Subnetze) in der AWS Management Console angezeigt werden.
+*   **Testschritte (für `Nextcloud#5`):**
+    1.  Nach erfolgreichem `terraform apply` (für `Nextcloud#5`) in der AWS Management Console zur VPC-Übersicht navigieren.
+    2.  Die für das Projekt erstellte VPC auswählen und den Tab "Tags" prüfen.
+    3.  Eines der für das Projekt erstellten Subnetze auswählen und den Tab "Tags" prüfen.
+*   **Erwartetes Ergebnis (für `Nextcloud#5`):** Alle in `local.common_tags` definierten Standard-Tags sind mit den korrekten Werten auf den überprüften Ressourcen vorhanden.
+*   **Tatsächliches Ergebnis:** *(Wird im Rahmen von Ticket `Nextcloud#5` dokumentiert)*
+*   **Nachweis:** *(Screenshots werden im Rahmen von Ticket `Nextcloud#5` in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) hinzugefügt)*
+
+---
+*(Weitere Testfälle folgen hier)*
 
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
