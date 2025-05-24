@@ -486,6 +486,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * AWS Region eu-central-1 als Standard festgelegt und in allen Konfigurationen verwendet
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
+    * **Self-Review für User Story #37 durchgeführt:**
+        - ✅ Alle Akzeptanzkriterien verifiziert
+        - ✅ MFA aktiviert und mit Login getestet
+        - ✅ IAM User funktioniert mit AWS CLI Befehlen
+        - ✅ Budget-Alerts: Test-E-Mail erhalten
+        - ✅ Dokumentation in Sprint 1 Abschnitt aktualisiert
+        - ✅ Keine Security Keys im Repo committed
 * **Sprint Retrospektive (Wichtigste Aktion):**
     * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
 
