@@ -296,10 +296,17 @@ Die konkrete Umsetzung und Dokumentation der einzelnen Sprints ist im nachfolgen
     *   `Nextcloud#6`: Terraform Remote Backend konfigurieren
     *   `Nextcloud#5`: VPC mit Subnetzen via Terraform erstellen
     *   `Nextcloud#7`: Kosten-Tags für AWS Ressourcen definieren
-*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird während des Sprints hier kurz ergänzt)*
-*   **Erreichtes Inkrement / Ergebnisse:** *(Wird am Ende des Sprints hier mit den Highlights gefüllt)*
-*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird am Ende des Sprints hier ergänzt)*
-*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird am Ende des Sprints hier ergänzt)*
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    * AWS Free Tier Limits mussten genau geprüft werden um Kosten zu vermeiden
+*   **Erreichtes Inkrement / Ergebnisse:**
+    * AWS Root Account mit MFA gesichert
+    * IAM User "terraform-admin" mit AdministratorAccess Policy erstellt
+    * AWS CLI Profile "nextcloud-project" konfiguriert für lokale Entwicklung
+    * Access Keys sicher in ~/.aws/credentials gespeichert
+*   **Sprint Review (Kurzfazit & Demo-Highlight):**
+    * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
+*   **Sprint Retrospektive (Wichtigste Aktion):**
+    * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
 ---
 #### **Sprint 2: Terraform für EKS Cluster & ECR**
 *   **Dauer:** ca. 25. Mai 2025 - 01. Juni 2025 *(Beispiel, an dein Gantt anpassen, endet vor Besprechung 2 am 02.06.)*
@@ -487,6 +494,15 @@ GitHub Actions ist direkt in die GitHub-Plattform integriert, wo das Projekt geh
 ### 4.4 Installation und Inbetriebnahme der Gesamtlösung
 *Eine Schritt-für-Schritt-Anleitung, um das Projekt von Null aufzusetzen.*
 #### 4.4.1 Voraussetzungen
+* AWS Account mit MFA-gesichertem Root-Zugang
+* IAM User mit programmatischem Zugriff (AdministratorAccess)
+* AWS CLI installiert und konfiguriert
+```bash
+aws configure --profile nextcloud-project
+  ```
+* Terraform >= 1.5.0
+* kubectl
+* helm >= 3.0
 #### 4.4.2 Klonen des Repositorys
 #### 4.4.3 Konfiguration von Umgebungsvariablen/Secrets
 #### 4.4.4 Ausführen der Pipeline / Manuelle Schritte (falls nötig)
