@@ -1085,6 +1085,9 @@ Diese Konfiguration stellt ein robustes und hochverfügbares Netzwerkfundament b
   ```
 * **Git** - Version Control
 
+**Terraform Backend Infrastruktur:**
+*   Ein AWS S3 Bucket für Terraform State und eine AWS DynamoDB-Tabelle für State Locking müssen bereits provisioniert sein. Dies geschieht typischerweise durch eine separate Terraform-Konfiguration (siehe Abschnitt [4.1.0](#410-terraform-remote-state-backend-konfiguration)). Notieren Sie sich die Namen des S3 Buckets und der DynamoDB-Tabelle.
+
 **AWS Konfiguration:**
 * AWS Account mit aktiviertem MFA
 * IAM User mit programmatischem Zugriff
