@@ -815,6 +815,44 @@ Das folgende Diagramm visualisiert diese Architektur:
 
 *Aufbau der AWS-Infrastruktur Schritt für Schritt mit Terraform.*
 
+#### 4.1.0 Terraform Remote State Backend-Konfiguration
+
+Um den Terraform State der Hauptanwendungsinfrastruktur zentral, sicher und versioniert zu verwalten sowie Kollaborationen zu ermöglichen, wird der State in einem AWS S3 Bucket gespeichert. Für State Locking, um konkurrierende Änderungen und State Corruption zu verhindern, wird eine AWS DynamoDB-Tabelle verwendet. Dies erfüllt die Anforderungen der User Story `Nextcloud#6`.
+
+**Management der Backend-Infrastruktur:**
+Die für das Remote Backend benötigten AWS-Ressourcen (S3 Bucket, DynamoDB-Tabelle) werden **nicht direkt durch die Terraform-Konfiguration der Hauptanwendung (`src/terraform/`) erstellt oder verwaltet.** Stattdessen folgen wir der Best Practice, diese Backend-Infrastruktur in einer **separaten, dedizierten Terraform-Konfiguration** zu provisionieren und zu managen. Für dieses Projekt befindet sich diese Konfiguration beispielsweise im Verzeichnis `terraform-backend-setup/` (oder `backend/` wie in der praktischen Umsetzung).
+
+Diese separate Konfiguration ist verantwortlich für:
+*   **S3 Bucket (`aws_s3_bucket`):**
+    *   Erstellung eines global eindeutigen S3 Buckets (z.B. `nenad-stevic-nextcloud-tfstate`).
+    *   Aktivierung der **Versionierung (`aws_s3_bucket_versioning`)**, um frühere Versionen des States wiederherstellen zu können.
+    *   Konfiguration der **Server-Side Encryption (`aws_s3_bucket_server_side_encryption_configuration`)** (z.B. SSE-S3) für die Verschlüsselung der State-Datei im Ruhezustand.
+    *   Implementierung eines **Public Access Blocks (`aws_s3_bucket_public_access_block`)**, um jeglichen öffentlichen Zugriff zu unterbinden.
+    *   Empfehlung: Einsatz von `lifecycle { prevent_destroy = true }` zum Schutz des State Buckets.
+*   **DynamoDB-Tabelle (`aws_dynamodb_table`):**
+    *   Erstellung einer DynamoDB-Tabelle (z.B. `nenad-stevic-nextcloud-tfstate-lock`) für das Terraform State Locking.
+    *   Definition des Primärschlüssels `LockID` (Typ: String).
+    *   Verwendung des Billing Mode `PAY_PER_REQUEST`.
+
+Die Erstellung und Verwaltung dieser Ressourcen über die separate Konfiguration stellt sicher, dass die Backend-Infrastruktur unabhängig vom Lebenszyklus der Hauptanwendungsinfrastruktur ist. Somit kann die Hauptanwendungsinfrastruktur (VPC, EKS, etc.) mittels `terraform destroy` aus `src/terraform/` entfernt werden, ohne den Remote State selbst zu gefährden.
+
+**Konfiguration des Backends in der Hauptanwendung (`src/terraform/`):**
+Die Terraform-Konfiguration der Hauptanwendung in `src/terraform/` enthält dann lediglich die Backend-Definition in einer Datei (z.B. `backend.tf`), die Terraform anweist, den zuvor separat erstellten S3 Bucket und die DynamoDB-Tabelle zu verwenden:
+
+```terraform
+// src/terraform/backend.tf
+terraform {
+  backend "s3" {
+    bucket         = "nenad-stevic-nextcloud-tfstate" // Name des extern erstellten S3 Buckets
+    key            = "nextcloud-app/main.tfstate"     // Pfad zur State-Datei im Bucket für diese Anwendung
+    region         = "eu-central-1"                   // AWS Region des Buckets
+    dynamodb_table = "nenad-stevic-nextcloud-tfstate-lock" // Name der extern erstellten DynamoDB Tabelle
+    encrypt        = true
+  }
+}
+```
+Nach dieser Konfiguration wird `terraform init` im Verzeichnis `src/terraform/` ausgeführt, wodurch Terraform sich mit dem spezifizierten S3 Bucket und der DynamoDB-Tabelle verbindet. Alle nachfolgenden Operationen (`plan`, `apply`, `destroy`) für die Hauptanwendungsinfrastruktur verwenden diesen Remote State.
+
 #### 4.1.1 Terraform Code-Struktur, Module und initiale Provider-Konfiguration
 
 Die Verwaltung der AWS-Infrastruktur erfolgt mittels Terraform. Der Code ist im Verzeichnis `src/terraform/` strukturiert.
