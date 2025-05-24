@@ -461,9 +461,35 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
 
 * **Dauer:** ca. 10. Mai 2025 - 24. Mai 2025
 * **Zugehörige Epics (Labels):** `EPIC-PROJEKT`, `EPIC-NETZ`
-* **Sprint Planning (simuliert am [Datum des Plannings für Sprint 1, z.B. 09.05.2025]):**
-    * **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team)
-    * **Ziel des Plannings:** Definition des Sprint-Ziels und Auswahl der User Stories für Sprint 1.
+* **Sprint Planning (simuliert am 09.05.2025):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team).
+    *   **Kontext & Ziel des Plannings:** Nach erfolgreichem Abschluss von Sprint 0, in dem die Projektgrundlagen und das Scrum-Rahmenwerk etabliert wurden, zielt dieses erste "echte" Sprint Planning darauf ab, den ersten operativen Sprint zu definieren. Das Hauptziel ist es, ein klares Sprint-Ziel für Sprint 1 zu formulieren und die dafür notwendigen User Stories aus dem Product Backlog auszuwählen und zu committen.
+    *   **Input für das Planning:**
+        *   **Product Goal:** "Bis zum 09.07.2025 eine vollautomatisierte End-to-End CI/CD-Pipeline [...] bereitzustellen und zu verwalten."
+        *   **Priorisiertes Product Backlog:** Die User Stories aus den Epics `EPIC-PROJEKT` (Restarbeiten zur Umgebung) und `EPIC-TF-NET` (Netzwerk-Grundlagen) wurden im Vorfeld als am höchsten priorisiert identifiziert, da sie die Basis für alle weiteren technischen Arbeiten legen. Alle für dieses Planning relevanten User Stories erfüllten die Definition of Ready (DoR).
+        *   **Kapazität für Sprint 1:** Geschätzte Arbeitszeit für die kommenden zwei Wochen (ca. 10-12 Stunden effektive Projektarbeitszeit, unter Berücksichtigung anderer Verpflichtungen).
+        *   **Definition of Done (DoD):** Die in Sprint 0 definierte DoD dient als Richtlinie für den Abschluss jeder User Story.
+        *   **Erkenntnisse aus Sprint 0:** Die Notwendigkeit einer soliden Basis und einer klaren Umgebungskonfiguration wurde unterstrichen.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):**
+        *   Der Product Owner (PO) betonte, dass ohne einen sicheren AWS-Zugang, eine funktionierende lokale Entwicklungsumgebung und eine grundlegende Netzwerkstruktur keine weiteren Infrastrukturkomponenten sinnvoll aufgesetzt werden können.
+        *   Das Development Team (Dev) stimmte zu und schlug vor, das Sprint-Ziel so zu formulieren, dass es diese fundamentalen Bausteine abdeckt, inklusive der wichtigen Aspekte der Kostenkontrolle (Tagging) und der zentralen State-Verwaltung für Terraform, um von Anfang an Best Practices zu folgen.
+        *   Gemeinsam wurde das folgende Sprint-Ziel formuliert und committet:
+            *   *"Ein sicherer AWS Account und eine lokale Entwicklungsumgebung sind eingerichtet, das Terraform Remote Backend ist konfiguriert, und ein grundlegendes, korrekt getaggtes AWS VPC-Netzwerk ist mittels Terraform Code definiert, versioniert und erfolgreich provisioniert."*
+    *   **Diskussion – Das "Was" (Auswahl der Sprint Backlog Items):**
+        *   Basierend auf dem Sprint-Ziel wurden die folgenden User Stories aus dem Product Backlog als essentiell für dessen Erreichung identifiziert:
+            *   `Nextcloud#37` (AWS Account sicher konfigurieren): Absolute Grundvoraussetzung.
+            *   `Nextcloud#38` (Lokale Entwicklungsumgebung einrichten): Notwendig für jegliche Code-Entwicklung und Tests.
+            *   `Nextcloud#7` (Kosten-Tags & initiale TF-Provider-Konfig): Wichtig, um von Beginn an Kostenkontrolle zu gewährleisten und eine saubere Terraform-Struktur aufzusetzen.
+            *   `Nextcloud#6` (Terraform Remote Backend konfigurieren): Kritisch für sichere und kollaborative State-Verwaltung, bevor komplexe Ressourcen erstellt werden.
+            *   `Nextcloud#5` (VPC mit Subnetzen via Terraform erstellen): Das Kernstück der Netzwerkinfrastruktur für diesen Sprint.
+        *   Die Aufwände für diese Stories wurden als realistisch für die Sprint-Kapazität eingeschätzt. Jede Story wurde kurz durchgegangen, um sicherzustellen, dass die Akzeptanzkriterien klar sind und keine unmittelbaren Blocker bestehen.
+    *   **Diskussion – Das "Wie" (Grobe Planung der Umsetzung):**
+        *   Das Dev-Team plant, mit der Einrichtung des AWS Accounts und der lokalen Umgebung zu beginnen, da diese die Basis für alle Terraform-Arbeiten bilden.
+        *   Anschliessend wird die initiale Terraform-Provider-Konfiguration mit den Tags und dem Remote Backend angegangen.
+        *   Zuletzt erfolgt die Implementierung des VPC-Netzwerks.
+        *   Es wurde beschlossen, die Terraform-Struktur von Anfang an modular im `src/terraform/` Verzeichnis aufzubauen.
+        *   Die Dokumentation (dieses README) wird parallel zur Umsetzung der User Stories aktualisiert.
+    *   **Commitment:** Das Development Team committet sich zum Erreichen des Sprint-Ziels und zur Fertigstellung der ausgewählten Sprint Backlog Items bis zum Ende des Sprints.
 * **Sprint-Ziel (committet für Sprint 1):**
     * "Ein sicherer AWS Account und eine lokale Entwicklungsumgebung sind eingerichtet, das Terraform Remote Backend ist
       konfiguriert, und ein grundlegendes, korrekt getaggtes AWS VPC-Netzwerk ist mittels Terraform Code definiert,
@@ -516,62 +542,73 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `terraform init` wurde erfolgreich ausgeführt, um das Remote Backend für die Hauptanwendung zu initialisieren und sich mit dem S3 Bucket zu verbinden. *(Anmerkung: Falls die AWS-Probleme dies verhindert haben, muss hier der tatsächliche Stand dokumentiert werden...)*
     *   Es wurden keine AWS Keys im Code hardcodiert; die Authentifizierung erfolgt über das konfigurierte AWS CLI Profil.
     *   Alle projektspezifischen DoD-Punkte für diese User Story (bezogen auf die Konfiguration des Backends in `src/terraform/`) sind erfüllt.
-* **Sprint Review (Kurzfazit & Demo-Highlight):**
-    * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
-    * **Self-Review für User Story #37 durchgeführt:**
-        - ✅ Alle Akzeptanzkriterien verifiziert
-        - ✅ MFA aktiviert und mit Login getestet
-        - ✅ IAM User funktioniert mit AWS CLI Befehlen
-        - ✅ Budget-Alerts: Test-E-Mail erhalten
-        - ✅ Dokumentation in Sprint 1 Abschnitt aktualisiert
-        - ✅ Keine Security Keys im Repo committed
-    * **Self-Review für User Story #38 durchgeführt:**
-        - ✅ Alle Tools installiert und Versionen verifiziert
-        - ✅ AWS CLI erfolgreich mit IAM User verbunden
-        - ✅ Terraform init in Test-Verzeichnis erfolgreich
-        - ✅ kubectl config view zeigt korrekte Struktur
-        - ✅ Helm repo add stable funktioniert
-        - ✅ VS Code Extensions produktiv nutzbar
-        - ✅ Dokumentation in Sections 2.3 und 4.4.1 aktualisiert
-    * **Self-Review für User Story #7 (Initiale TF-Konfig & Kosten-Tags) durchgeführt:**
-        - ✅ Terraform-Grundgerüst (versions, provider, variables, locals) erstellt.
-        - ✅ AC1: Standard-Tags als Terraform `locals` Variable definiert und in `default_tags` Block des AWS Providers verwendet.
-        - ✅ AC2: Automatische Propagierung durch `default_tags` ist konfiguriert und wird bei der Erstellung von Ressourcen (z.B. VPC in `Nextcloud#5`) greifen.
-        - ✅ AC3: Die Konfiguration ist bereit, um Tags auf erstellten Ressourcen sichtbar zu machen. (Finale Verifizierung erfolgt mit VPC-Erstellung).
-        - ✅ AC4: Alle DoD-Punkte erfüllt (Code implementiert, `terraform init/validate/plan` ausgeführt, Dokumentation mit diesem Schritt aktualisiert).
-    * **Self-Review für User Story #5 (VPC mit Subnetzen) durchgeführt:**
-        - ✅ AC1: VPC CIDR-Block ist konfigurierbar (Variable `vpc_cidr_block`).
-        - ✅ AC2: Zwei öffentliche Subnetze in unterschiedlichen AZs erstellt und verifiziert.
-        - ✅ AC3: Zwei private Subnetze in unterschiedlichen AZs erstellt und verifiziert.
-        - ✅ AC4: Internet Gateway erstellt, der VPC zugeordnet und verifiziert.
-        - ✅ AC5: Routing-Tabellen für öffentliche Subnetze mit Route zum IGW korrekt konfiguriert und mit öffentlichen Subnetzen assoziiert; verifiziert.
-        - ✅ AC6: Ein NAT Gateway **pro AZ** in den jeweiligen öffentlichen Subnetzen mit EIPs erstellt und verifiziert.
-        - ✅ AC7: Routing-Tabellen für private Subnetze **pro AZ** (Route zum NAT Gateway der jeweiligen AZ) korrekt konfiguriert und mit privaten Subnetzen assoziiert; verifiziert.
-        - ✅ AC8: `terraform validate` und `terraform plan` laufen fehlerfrei.
-        - ✅ AC9: `terraform apply` provisioniert Ressourcen erfolgreich.
-        - ✅ AC10: Dokumentation der Netzwerkarchitektur (Diagramm) in [3.3.2](#332-aws-netzwerkarchitektur-vpc-detail) aktualisiert, um die NAT-pro-AZ-Strategie darzustellen.
-        - ✅ AC11: Alle DoD-Punkte erfüllt (Code implementiert, PR-Prozess gefolgt, Tests, Doku aktualisiert).
-        - ✅ Zusätzliche Verifizierung: Kosten-Tags von User Story #7 auf VPC-Ressourcen geprüft und bestätigt.
-* **Sprint Retrospektive (Wichtigste Aktion):**
-    * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
+* **Sprint Review (durchgeführt am 24.05.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team). Die Fachexperten werden als die primären Stakeholder betrachtet, denen das Inkrement präsentiert wird.
+    *   **Sprint-Ziel von Sprint 1 (rekapituliert):** "Ein sicherer AWS Account und eine lokale Entwicklungsumgebung sind eingerichtet, das Terraform Remote Backend ist konfiguriert, und ein grundlegendes, korrekt getaggtes AWS VPC-Netzwerk ist mittels Terraform Code definiert, versioniert und erfolgreich provisioniert."
+    *   **Präsentation des Inkrements:**
+        *   Alle für Sprint 1 committeten User Stories (`#37`, `#38`, `#6`, `#5`, `#7`) wurden erfolgreich abgeschlossen und erfüllen ihre jeweiligen Akzeptanzkriterien sowie die Definition of Done.
+        *   Die sichere AWS-Account-Konfiguration wurde demonstriert (MFA, IAM User, Budget Alerts).
+        *   Die eingerichtete lokale Entwicklungsumgebung mit allen notwendigen Tools wurde vorgestellt.
+        *   Die Implementierung der initialen Terraform-Provider-Konfiguration inklusive der globalen Tagging-Strategie wurde gezeigt.
+        *   Die erfolgreiche Provisionierung des VPC-Netzwerks mit öffentlichen/privaten Subnetzen und der NAT-Gateway-pro-AZ-Architektur via Terraform wurde demonstriert und die erstellten Ressourcen in der AWS Konsole gezeigt (inkl. Verifizierung der Tags).
+        *   Die Konfiguration des Terraform Remote Backends (S3 & DynamoDB) für die Hauptanwendung wurde erläutert und die erfolgreiche Initialisierung (`terraform init`) bestätigt. *(Anmerkung: Falls AWS-Probleme die volle Verifizierung des Remote Backend `apply` verhindert haben, sollte dies hier transparent erwähnt werden.)*
+        *   Die "Self-Review"-Notizen für jede User Story (siehe "Erreichtes Inkrement / Ergebnisse") dienten als detaillierte Nachweise der Erfüllung.
+    *   **Diskussion & Feedback (simuliert):**
+        *   Das Sprint-Ziel wurde vollständig erreicht.
+        *   Die klare Struktur des Terraform-Codes und die detaillierte Dokumentation der Einrichtungsschritte wurden positiv hervorgehoben.
+        *   Die NAT-Gateway-pro-AZ-Strategie wurde als gute Designentscheidung für Hochverfügbarkeit bewertet.
+        *   Es wurde angemerkt, dass die initiale Nutzung von `AdministratorAccess` für den IAM User zwar für den Start praktikabel war, aber für spezifischere Aufgaben in späteren Sprints (z.B. CI/CD Pipeline) feingranularere Berechtigungen (Least Privilege) empfohlen werden (bereits in der Retrospektive als Punkt aufgenommen).
+    *   **Anpassungen am Product Backlog:**
+        *   Aufgrund des Feedbacks und der Ergebnisse dieses Reviews sind aktuell keine unmittelbaren Änderungen oder neuen Items für das Product Backlog erforderlich. Die bestehende Priorisierung bleibt gültig.
+    *   **Fazit:** Der Sprint war erfolgreich. Das Inkrement bildet eine solide Grundlage für die weiteren Sprints.
+* **Sprint Retrospektive (durchgeführt am 24.05.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team).
+    *   **Ziel der Retrospektive:** Den abgelaufenen Sprint 1 reflektieren, um positive Aspekte zu identifizieren, Verbesserungspotenziale aufzudecken und konkrete Massnahmen für den nächsten Sprint abzuleiten, um den Prozess und die Zusammenarbeit (auch in der Einzelarbeit) kontinuierlich zu optimieren.
+    *   **Diskussion – Was lief gut in Sprint 1?**
+        *   **Klare Zielsetzung:** Das Sprint-Ziel war von Anfang an klar und half, den Fokus während des Sprints zu behalten.
+        *   **Strukturierte Planung:** Die detaillierte User Story Aufteilung und die Akzeptanzkriterien aus dem Sprint Planning waren sehr hilfreich bei der Umsetzung und dem Self-Review.
+        *   **Frühe Etablierung von Best Practices:** Die Entscheidung, das Terraform Remote Backend (`Nextcloud#6`) und die globale Tagging-Strategie (`Nextcloud#7`) früh im Projekt zu implementieren, wurde als positiv bewertet, da dies eine solide und nachvollziehbare Basis schafft.
+        *   **Problemlösungskompetenz:** Die Herausforderungen bei der Recherche der AWS Free Tier Limits und der unterschiedlichen Installationsmethoden für die lokale Umgebung (`Nextcloud#38`) konnten erfolgreich gemeistert werden.
+        *   **Dokumentationsdisziplin:** Die parallele Aktualisierung des `README.md` mit den Fortschritten und technischen Details hat sich bewährt.
+    *   **Diskussion – Was könnte in Sprint 2 verbessert werden?**
+        *   **Genauigkeit der Aufwandsschätzung:** Obwohl die User Stories für Sprint 1 abgeschlossen wurden, war der tatsächliche Zeitaufwand für die Recherche und Implementierung des VPC-Netzwerks (`Nextcloud#5`) mit der NAT-Gateway-pro-AZ-Lösung etwas höher als initial grob geschätzt. Hier könnte für zukünftige Sprints eine noch detailliertere Vorab-Recherche für komplexere Tasks helfen.
+        *   **IAM-Berechtigungen (Least Privilege):** Die Nutzung der `AdministratorAccess` Policy für den initialen IAM User (`Nextcloud#37`) war zwar pragmatisch für den Start, entspricht aber nicht dem "Least Privilege"-Prinzip. Dies birgt unnötige Sicherheitsrisiken, auch wenn es sich um eine Entwicklungsumgebung handelt.
+        *   **Proaktive Impediment-Dokumentation:** Kleinere "Stolpersteine" (z.B. spezifische Terraform-Provider-Version Kompatibilitäten) wurden gelöst, aber nicht immer sofort als potenzielles Impediment im Daily Scrum (simuliert) festgehalten. Eine konsequentere Erfassung könnte helfen, Muster zu erkennen.
+    *   **Abgeleitete Action Items für Sprint 2 (und darüber hinaus):**
+        1.  **IAM Policy Verfeinerung (Höchste Priorität):** Für alle neu zu erstellenden IAM-Rollen (insbesondere für EKS, EBS CSI Driver in Sprint 2 und später die CI/CD-Pipeline) werden von Beginn an spezifische, auf den tatsächlichen Bedarf zugeschnittene IAM Policies erstellt und verwendet, anstatt pauschale Admin-Rechte zu vergeben. Dies wird das primäre Learning sein, das in Sprint 2 umgesetzt wird.
+        2.  **Detailliertere Recherche bei komplexen Tasks:** Vor dem Commit zu User Stories, die absehbar hohe Komplexität oder viele unbekannte Variablen haben (z.B. EKS Cluster Setup), wird etwas mehr Zeit für eine fokussierte Vorab-Recherche eingeplant, um die Schätzgenauigkeit zu verbessern und potenzielle Fallstricke früher zu identifizieren.
+        3.  **Konsequentere Impediment-Erfassung:** Auch kleinere technische Hürden oder unerwartete Verhaltensweisen von Tools werden bewusster als (potenzielle) Impediments im (simulierten) Daily Scrum festgehalten, um den Lernprozess und die Transparenz zu fördern.
 
 ---
 
 #### **Sprint 2: Terraform für EKS Cluster & ECR**
 
-* **Dauer:** ca. 25. Mai 2025 - 01. Juni 2025 *(Beispiel, an dein Gantt anpassen, endet vor Besprechung 2 am 02.06.)*
+* **Dauer:** ca. 25. Mai 2025 - 01. Juni 2025
 * **Zugehörige Epics:** `EPIC-TF-K8S`
-* **Vorläufiges Sprint-Ziel:** Den AWS EKS Kubernetes-Cluster und die AWS ECR Container Registry mittels Terraform Code
-  automatisiert provisionieren und grundlegend konfigurieren.
-* **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    * `Nextcloud#8`: EKS Cluster mit Node Groups provisionieren
-    * `Nextcloud#9`: ECR Repository via Terraform erstellen
-    * `Nextcloud#10`: IAM OIDC Provider für EKS konfigurieren
-    * `Nextcloud#11`: AWS EBS CSI Driver im EKS Cluster installieren
+* **Sprint Planning (durchgeführt am 24.05.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als Product Owner, Scrum Master, Development Team).
+    *   **Ziel des Plannings:** Definition des Sprint-Ziels für Sprint 2, Auswahl der User Stories aus dem Product Backlog und Planung der Umsetzung.
+    *   **Input:**
+        *   Product Backlog (priorisierte User Stories für `EPIC-TF-K8S`).
+        *   Aktuelles Produktinkrement (Ergebnisse aus Sprint 1, insbesondere das provisionierte VPC).
+        *   Voraussichtliche Kapazität für Sprint 2 (ca. 6 Stunden).
+        *   Erkenntnisse aus der Sprint 1 Retrospektive.
+* **Sprint-Ziel (committet für Sprint 2):**
+    *   "Ein funktionsfähiger AWS EKS Kubernetes-Cluster mit konfigurierten Node Groups und einem IAM OIDC Provider ist mittels Terraform automatisiert provisioniert. Zusätzlich ist ein AWS ECR Repository für Docker-Images via Terraform erstellt und der AWS EBS CSI Driver im EKS Cluster für persistente Volumes installiert und konfiguriert."
+* **Sprint Backlog (committete User Stories für Sprint 2 – siehe auch [Sprint 2 auf GitHub Board]([DEIN_AKTUALISIERTER_LINK_HIER])): **
+    *   `Nextcloud#8`: EKS Cluster mit Node Groups provisionieren (via Terraform).
+    *   `Nextcloud#9`: ECR Repository via Terraform erstellen.
+    *   `Nextcloud#10`: IAM OIDC Provider für EKS konfigurieren (via Terraform).
+    *   `Nextcloud#11`: AWS EBS CSI Driver im EKS Cluster installieren und konfigurieren.
+* **Plan für die Umsetzung (grob):**
+    *   Priorität 1: EKS Cluster Grundgerüst (#8) und IAM OIDC Provider (#10), da diese fundamental sind und voneinander abhängen könnten.
+    *   Priorität 2: ECR Repository (#9), wichtig für spätere CI/CD und kann parallel vorbereitet werden.
+    *   Priorität 3: EBS CSI Driver (#11), baut auf dem funktionierenden EKS Cluster und OIDC Provider auf, um Persistenz-Tests vorzubereiten.
+    *   Die Terraform-Konfigurationen werden im bestehenden Verzeichnis `src/terraform/` in logisch getrennten Dateien (z.B. `eks.tf`, `ecr.tf`, `iam_oidc.tf`) erweitert.
+    *   Dokumentation (dieses README, insbesondere Abschnitte 4.1.3 und ggf. relevante Teile von 3.3) wird parallel zur Umsetzung jeder User Story aktualisiert.
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 * **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem EKS/ECR für
-  Besprechung 2)*
+* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem EKS/ECR und EBS CSI für Besprechung 2)*
 * **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
 ---
