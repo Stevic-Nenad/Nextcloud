@@ -1187,7 +1187,28 @@ Diese Konfiguration stellt ein robustes und hochverfügbares Netzwerkfundament b
 
 ---
 
-*(Weitere Testfälle folgen hier)*
+**Testfall: Terraform Remote Backend Initialisierung und Nutzung (Hauptanwendung)**
+*   **Zugehörige User Story:** `Nextcloud#6` - Terraform Remote Backend konfigurieren (für die Hauptanwendung `src/terraform/`)
+*   **Voraussetzung:** Der S3 Bucket und die DynamoDB-Tabelle für das Backend wurden bereits durch eine separate Terraform-Konfiguration (z.B. `terraform-backend-setup/`) provisioniert und ihre Namen sind bekannt.
+*   **Status:** `Abgeschlossen` / `Teilweise Abgeschlossen (wegen AWS-Problemen)` *(Anpassen!)*
+*   **Zielsetzung:** Verifizieren, dass die Hauptanwendungs-Terraform-Konfiguration (`src/terraform/`) korrekt mit dem extern provisionierten S3 Remote Backend initialisiert wird, den State dort liest/schreibt und Locks über DynamoDB funktionieren.
+*   **Testschritte:**
+    1.  Sicherstellen, dass die `src/terraform/backend.tf`-Datei korrekt mit den Namen des externen S3 Buckets und der DynamoDB-Tabelle konfiguriert ist.
+    2.  Im Verzeichnis `src/terraform/` den Befehl `terraform init` ausführen.
+    3.  Überprüfen, ob `terraform init` erfolgreich durchläuft und die Verbindung zum S3-Backend bestätigt.
+    4.  Eine kleine, harmlose Änderung an der *Anwendungs*-Infrastruktur (z.B. ein Tag zu einer Ressource in `src/terraform/network.tf` hinzufügen, nicht die Backend-Konfiguration selbst) vornehmen.
+    5.  `terraform plan` ausführen. Überprüfen, ob der Plan korrekt erstellt wird und einen Lock-Versuch in DynamoDB andeutet (schwer manuell zu sehen, aber der Plan sollte ohne Lock-Fehler erstellt werden).
+    6.  `terraform apply` ausführen, um die Änderung anzuwenden.
+    7.  Überprüfen, ob die `terraform.tfstate`-Datei im S3 Bucket unter dem konfigurierten `key` (z.B. `nextcloud-app/main.tfstate`) aktualisiert wurde (Zeitstempel, Version).
+*   **Erwartetes Ergebnis:**
+    *   `terraform init` in `src/terraform/` läuft fehlerfrei durch und initialisiert das S3-Backend.
+    *   Die State-Datei für die Hauptanwendung wird im S3-Bucket unter dem korrekten Key verwaltet/aktualisiert.
+    *   `terraform plan/apply` für die Hauptanwendungsinfrastruktur funktionieren und verwenden den Remote State.
+*   **Tatsächliches Ergebnis:** `HIER DAS TATSÄCHLICHE ERGEBNIS EINTRAGEN.` *(Wichtig: Wenn AWS-Probleme die Verifizierung von `init` oder `apply` für `src/terraform/` verhindert haben, muss das hier klar und ehrlich dokumentiert werden!)*
+*   **Nachweis:**
+    *   Screenshot der `src/terraform/backend.tf` Konfiguration.
+    *   Screenshot des S3 Buckets, der die State-Datei unter dem Key `nextcloud-app/main.tfstate` zeigt.
+    *   Konsolenausgabe von `terraform init` (aus `src/terraform/`).
 
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
