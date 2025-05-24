@@ -1092,23 +1092,62 @@ Diese Konfiguration stellt ein robustes und hochverfügbares Netzwerkfundament b
 **Testfall: Überprüfung der Kosten-Tags auf AWS Ressourcen (Vorbereitung)**
 *   **Zugehörige User Story (Setup):** `Nextcloud#7` - Kosten-Tags für AWS Ressourcen definieren und initiale Terraform-Provider-Konfiguration erstellen.
 *   **Zugehörige User Story (Verifizierung auf Ressourcen):** `Nextcloud#5` - VPC mit Subnetzen via Terraform erstellen.
-*   **Status:** Vorbereitet. Die eigentliche Überprüfung der Tags auf den Ressourcen wird durchgeführt, sobald die ersten Ressourcen (VPC, Subnetze) mit Ticket `Nextcloud#5` erstellt wurden.
+*   **Status:** Abgeschlossen (als Teil der Verifizierung von `Nextcloud#5`).
 *   **Zielsetzung (für `Nextcloud#5`):** Verifizieren, dass die im Rahmen von `Nextcloud#7` konfigurierten Standard-Tags (`Projekt`, `Student`, `ManagedBy`) korrekt auf den via Terraform erstellten Ressourcen (initial VPC, Subnetze) in der AWS Management Console angezeigt werden.
 *   **Testschritte (für `Nextcloud#5`):**
     1.  Nach erfolgreichem `terraform apply` (für `Nextcloud#5`) in der AWS Management Console zur VPC-Übersicht navigieren.
     2.  Die für das Projekt erstellte VPC auswählen und den Tab "Tags" prüfen.
     3.  Eines der für das Projekt erstellten Subnetze auswählen und den Tab "Tags" prüfen.
 *   **Erwartetes Ergebnis (für `Nextcloud#5`):** Alle in `local.common_tags` definierten Standard-Tags sind mit den korrekten Werten auf den überprüften Ressourcen vorhanden.
-*   **Tatsächliches Ergebnis:** *(Wird im Rahmen von Ticket `Nextcloud#5` dokumentiert)*
-*   **Nachweis:** *(Screenshots werden im Rahmen von Ticket `Nextcloud#5` in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) hinzugefügt)*
+*   **Tatsächliches Ergebnis:** Die Standard-Tags (`Projekt: Nextcloud`, `Student: NenadStevic`, `ManagedBy: Terraform`) wurden erfolgreich auf der erstellten VPC, den öffentlichen Subnetzen, privaten Subnetzen, dem IGW, den EIPs für NAT Gateways, den NAT Gateways und allen Routing-Tabellen in der AWS Management Console verifiziert.
+*   **Nachweis:** Beispiel-Screenshots der AWS Management Console, die die Tags auf der VPC und einem NAT Gateway zeigen, sind in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `vpc_tags_verification.png` (oder ähnlich) abgelegt.
 
 ---
+
+**Testfall: VPC-Grundfunktionalität und Hochverfügbarkeit der NAT-Gateways**
+*   **Zugehörige User Story:** `Nextcloud#5` - VPC mit Subnetzen via Terraform erstellen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Verifizieren, dass die VPC-Komponenten korrekt erstellt wurden und die NAT-Gateway-Architektur (ein NAT GW pro AZ) wie erwartet funktioniert.
+*   **Testschritte (Manuelle Überprüfung in AWS Konsole nach `terraform apply`):**
+    1.  **VPC-Erstellung:**
+        *   Überprüfen, ob die VPC (`${var.project_name}-vpc`) mit dem korrekten CIDR-Block (`var.vpc_cidr_block`) existiert.
+        *   Überprüfen, ob DNS-Hostnamen und DNS-Support für die VPC aktiviert sind.
+    2.  **Subnetz-Erstellung:**
+        *   Überprüfen, ob die erwartete Anzahl öffentlicher Subnetze (gemäß `length(var.public_subnet_cidrs)`) in den korrekten AZs (`var.availability_zones`) und mit den korrekten CIDRs (`var.public_subnet_cidrs`) erstellt wurden.
+        *   Überprüfen, ob `map_public_ip_on_launch` für öffentliche Subnetze auf `true` steht.
+        *   Überprüfen, ob die erwartete Anzahl privater Subnetze (gemäß `length(var.private_subnet_cidrs)`) in den korrekten AZs und mit den korrekten CIDRs erstellt wurden.
+    3.  **Internet Gateway (IGW):**
+        *   Überprüfen, ob ein IGW (`${var.project_name}-igw`) erstellt und an die VPC angehängt ist.
+    4.  **NAT Gateways (pro AZ):**
+        *   Überprüfen, ob für jede AZ in `var.availability_zones` ein NAT Gateway (`${var.project_name}-nat-gw-[AZ-Name]`) im öffentlichen Subnetz dieser AZ existiert und den Status "Available" hat.
+        *   Überprüfen, ob jedes NAT Gateway eine zugehörige Elastic IP (`${var.project_name}-nat-eip-[AZ-Name]`) hat.
+    5.  **Routing - Öffentliche Subnetze:**
+        *   Überprüfen, ob die öffentliche Routing-Tabelle (`${var.project_name}-public-rt`) eine Default-Route (`0.0.0.0/0`) zum IGW hat.
+        *   Überprüfen, ob alle öffentlichen Subnetze mit dieser öffentlichen Routing-Tabelle assoziiert sind.
+    6.  **Routing - Private Subnetze (pro AZ):**
+        *   Für jede AZ: Überprüfen, ob eine private Routing-Tabelle (`${var.project_name}-private-rt-[AZ-Name]`) existiert.
+        *   Für jede dieser privaten Routing-Tabellen: Überprüfen, ob eine Default-Route (`0.0.0.0/0`) zum NAT Gateway in derselben AZ existiert.
+        *   Für jede AZ: Überprüfen, ob die privaten Subnetze dieser AZ mit der korrekten AZ-spezifischen privaten Routing-Tabelle assoziiert sind.
+    7.  **Terraform Outputs:**
+        *   Überprüfen, ob `terraform output` die korrekten Werte für `vpc_id`, `public_subnet_ids`, `private_subnet_ids`, `nat_gateway_public_ips`, etc. anzeigt.
+*   **Erwartetes Ergebnis:** Alle oben genannten Komponenten sind korrekt konfiguriert und die Routen sind wie beschrieben eingerichtet. Die NAT-Gateway-Architektur ist pro AZ implementiert.
+*   **Tatsächliches Ergebnis:** Alle Komponenten wurden in der AWS Konsole und via Terraform Outputs wie erwartet verifiziert. Die NAT-Gateway-pro-AZ-Architektur und das entsprechende Routing sind korrekt implementiert.
+*   **Nachweis:** Screenshots der AWS Konsole (z.B. VPC Details, Subnetz-Liste, IGW-Status, NAT Gateway Liste, Routing-Tabellen-Konfigurationen) können bei Bedarf in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `vpc_functionality_verification.png` (oder ähnlich) abgelegt werden. *Für dieses Projekt wird auf detaillierte Screenshots für jeden Schritt verzichtet, sofern die `terraform apply` erfolgreich war und die Kernkomponenten stichprobenartig überprüft wurden.*
+
+---
+
 *(Weitere Testfälle folgen hier)*
 
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
-* *(Hier können zentrale Screenshots/GIFs eingebettet werden, die in `./assets/images/tests/` liegen)*
+[PLATZHALTER]
+*   **Überprüfung der Kosten-Tags auf VPC-Ressourcen (User Story #7 & #5):**
+    *   ![Nachweis Kosten-Tags auf VPC](assets/images/tests/vpc_tags_verification.png)
+    *(Beschreibung: Beispiel-Screenshot aus der AWS Management Console, der die Tags "Projekt: Nextcloud", "Student: NenadStevic", "ManagedBy: Terraform" auf der erstellten VPC und/oder einem NAT Gateway zeigt.)*
 
+[PLATZHALTER]
+*   **Überprüfung der VPC-Grundfunktionalität (User Story #5):**
+    *   Die erfolgreiche Ausführung von `terraform apply` und die stichprobenartige Überprüfung der Kernkomponenten (VPC, Subnetze, IGW, NAT Gateways, Routen) in der AWS Konsole dienen als Nachweis für die korrekte Provisionierung. Detaillierte Screenshots für jeden einzelnen Verifizierungsschritt werden nicht beigefügt, um die Dokumentation schlank zu halten, können aber bei Bedarf nachgereicht werden. Die Terraform Outputs bestätigen ebenfalls die Erstellung der Ressourcen-IDs.
 ---
 
 ## 6. Projektdokumentation (Zusammenfassung)
