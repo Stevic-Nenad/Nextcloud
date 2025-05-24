@@ -482,6 +482,8 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * IAM User "terraform-admin" mit AdministratorAccess Policy erstellt
     * AWS CLI Profile "nextcloud-project" konfiguriert für lokale Entwicklung
     * Access Keys sicher in ~/.aws/credentials gespeichert
+    * AWS Budget von $20/Monat mit Benachrichtigungen bei 80% und 100% eingerichtet
+    * AWS Region eu-central-1 als Standard festgelegt und in allen Konfigurationen verwendet
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
 * **Sprint Retrospektive (Wichtigste Aktion):**
@@ -600,7 +602,7 @@ wurden identifiziert und mit entsprechenden Gegenmassnahmen bewertet:
 |----|-------------------------------------------------------------------------|--------------------------------------|---------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|----------------|--------|
 | R1 | Technische Komplexität der Integration (Nextcloud, K8s, DB, IaC, CI/CD) | H                                    | H                               | H                  | Iteratives Vorgehen, Fokus auf Kernfunktionalität, Nutzung von Managed Services, Rückgriff auf CKA-Wissen, sorgfältige Recherche & Dokumentation.   | N. Stevic      | Offen  |
 | R2 | Zeitlicher Aufwand für ca. 50h sehr ambitioniert                        | H                                    | H                               | H                  | Striktes Zeit- und Scope-Management, Priorisierung der Kernziele, frühzeitiger Beginn, realistische Aufwandsschätzung pro Task, Pufferzeiten.       | N. Stevic      | Offen  |
-| R3 | Cloud-Kosten (Managed Kubernetes & DB-Dienste)                          | M                                    | M                               | M                  | Aktives Kostenmanagement (AWS Dashboard), Nutzung kleinster möglicher Instanzgrössen, regelmässiges `terraform destroy`, Prüfung Studenten-Credits. | N. Stevic      | Offen  |
+| R3 | Cloud-Kosten (Managed Kubernetes & DB-Dienste) | M | M | M | Aktives Kostenmanagement (AWS Dashboard), Nutzung kleinster möglicher Instanzgrössen, regelmässiges `terraform destroy`, **AWS Budget mit $10 Limit und E-Mail-Alerts konfiguriert** | N. Stevic | **Mitigiert** |
 | R4 | Hoher Debugging-Aufwand (Terraform, Helm, CI/CD)                        | M                                    | H                               | H                  | Inkrementelles Testen, Nutzung von `terraform plan/validate`, `helm lint/template`, GitHub Actions Debugging-Optionen, systematisches Logging.      | N. Stevic      | Offen  |
 | R5 | Komplexität des Secrets Managements über gesamten Workflow              | M                                    | H                               | H                  | Einsatz von GitHub Actions OIDC für Cloud-Authentifizierung, Kubernetes Secrets, Least Privilege Prinzip, Dokumentation des Ansatzes.               | N. Stevic      | Offen  |
 
@@ -635,6 +637,13 @@ Die Wahl fiel auf AWS aufgrund der breiten Verfügbarkeit von Managed Services w
 RDS (Relational Database Service), die für dieses Projekt zentral sind. Zudem bietet AWS umfangreiche Dokumentationen
 und eine grosse Community, was die Einarbeitung und Fehlersuche erleichtert. Vorhandene Grunderfahrungen mit AWS
 beschleunigen zudem die Umsetzung.
+
+##### Regionale Entscheidung
+Für dieses Projekt wurde **eu-central-1 (Frankfurt)** als AWS-Region gewählt aufgrund von:
+- Niedrige Latenz für Zugriffe aus der Schweiz
+- Vollständige Verfügbarkeit aller benötigten Services (EKS, RDS, ECR)
+- DSGVO-konforme Datenhaltung innerhalb der EU
+- Gute Dokumentation und Community-Support
 
 #### 3.1.2 Container Orchestrierung (Kubernetes - EKS)
 
