@@ -532,6 +532,19 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         - ✅ AC2: Automatische Propagierung durch `default_tags` ist konfiguriert und wird bei der Erstellung von Ressourcen (z.B. VPC in `Nextcloud#5`) greifen.
         - ✅ AC3: Die Konfiguration ist bereit, um Tags auf erstellten Ressourcen sichtbar zu machen. (Finale Verifizierung erfolgt mit VPC-Erstellung).
         - ✅ AC4: Alle DoD-Punkte erfüllt (Code implementiert, `terraform init/validate/plan` ausgeführt, Dokumentation mit diesem Schritt aktualisiert).
+    * **Self-Review für User Story #5 (VPC mit Subnetzen) durchgeführt:**
+        - ✅ AC1: VPC CIDR-Block ist konfigurierbar (Variable `vpc_cidr_block`).
+        - ✅ AC2: Zwei öffentliche Subnetze in unterschiedlichen AZs erstellt und verifiziert.
+        - ✅ AC3: Zwei private Subnetze in unterschiedlichen AZs erstellt und verifiziert.
+        - ✅ AC4: Internet Gateway erstellt, der VPC zugeordnet und verifiziert.
+        - ✅ AC5: Routing-Tabellen für öffentliche Subnetze mit Route zum IGW korrekt konfiguriert und mit öffentlichen Subnetzen assoziiert; verifiziert.
+        - ✅ AC6: Ein NAT Gateway **pro AZ** in den jeweiligen öffentlichen Subnetzen mit EIPs erstellt und verifiziert.
+        - ✅ AC7: Routing-Tabellen für private Subnetze **pro AZ** (Route zum NAT Gateway der jeweiligen AZ) korrekt konfiguriert und mit privaten Subnetzen assoziiert; verifiziert.
+        - ✅ AC8: `terraform validate` und `terraform plan` laufen fehlerfrei.
+        - ✅ AC9: `terraform apply` provisioniert Ressourcen erfolgreich.
+        - ✅ AC10: Dokumentation der Netzwerkarchitektur (Diagramm) in [3.3.2](#332-aws-netzwerkarchitektur-vpc-detail) aktualisiert, um die NAT-pro-AZ-Strategie darzustellen.
+        - ✅ AC11: Alle DoD-Punkte erfüllt (Code implementiert, PR-Prozess gefolgt, Tests, Doku aktualisiert).
+        - ✅ Zusätzliche Verifizierung: Kosten-Tags von User Story #7 auf VPC-Ressourcen geprüft und bestätigt.
 * **Sprint Retrospektive (Wichtigste Aktion):**
     * Zukünftig spezifischere IAM Policies verwenden statt AdministratorAccess
 
