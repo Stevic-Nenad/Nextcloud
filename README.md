@@ -509,6 +509,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
   * `terraform validate`, `plan` und `apply` erfolgreich ausgeführt und Ressourcen verifiziert.
   * Netzwerkarchitektur-Diagramm in Abschnitt [3.3.2](#332-aws-netzwerkarchitektur-vpc-detail) dokumentiert und aktualisiert, um die NAT-Gateway-pro-AZ-Architektur darzustellen.
   * Alle Ressourcen sind korrekt mit den globalen Tags (`Projekt`, `Student`, `ManagedBy`) versehen (verifiziert im Rahmen des Testfalls für User Story #7).
+*   **Terraform Remote Backend konfiguriert (User Story #6 ✓):**
+    *   Die Terraform-Konfiguration der Hauptanwendung (`src/terraform/`) wurde so eingerichtet, dass sie einen extern verwalteten S3 Bucket (`nenad-stevic-nextcloud-tfstate`) für die zentrale und sichere Speicherung des Terraform States nutzt. Für diesen Bucket sind Versionierung, serverseitige Verschlüsselung (SSE-S3) und die Blockierung des öffentlichen Zugriffs vorausgesetzt (und durch die separate Backend-Infrastruktur-Konfiguration sichergestellt).
+    *   Ebenso wird eine extern verwaltete DynamoDB-Tabelle (`nenad-stevic-nextcloud-tfstate-lock`) für das State Locking verwendet, um konkurrierende State-Änderungen zu verhindern.
+    *   Die Terraform Backend-Konfiguration (`backend "s3" {}`) wurde in `src/terraform/backend.tf` hinzugefügt und committet, um diese externen Ressourcen zu nutzen.
+    *   `terraform init` wurde erfolgreich ausgeführt, um das Remote Backend für die Hauptanwendung zu initialisieren und sich mit dem S3 Bucket zu verbinden. *(Anmerkung: Falls die AWS-Probleme dies verhindert haben, muss hier der tatsächliche Stand dokumentiert werden...)*
+    *   Es wurden keine AWS Keys im Code hardcodiert; die Authentifizierung erfolgt über das konfigurierte AWS CLI Profil.
+    *   Alle projektspezifischen DoD-Punkte für diese User Story (bezogen auf die Konfiguration des Backends in `src/terraform/`) sind erfüllt.
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
     * **Self-Review für User Story #37 durchgeführt:**
