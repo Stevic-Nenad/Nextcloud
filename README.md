@@ -878,8 +878,99 @@ Durch diese zentrale Konfiguration wird sichergestellt, dass alle kostenverursac
 
 #### 4.1.2 Provisionierung des Netzwerks (VPC)
 
-* *(Wichtige Code-Snippets, Entscheidungen)*
-* *Bemerk: Dank der in Abschnitt 4.1.1a beschriebenen globalen Tagging-Strategie erhalten alle im Rahmen der VPC-Erstellung erzeugten Netzwerkressourcen (VPC, Subnetze etc.) automatisch die definierten Kosten-Tags.*
+Das Fundament der AWS-Infrastruktur bildet das Netzwerk, welches mittels Terraform im Verzeichnis `src/terraform/` (z.B. in `network.tf`) definiert wird. Dieses Modul erstellt eine VPC, öffentliche und private Subnetze über die konfigurierten Availability Zones, ein Internet Gateway sowie eine hochverfügbare NAT-Gateway-Architektur.
+
+**Design-Entscheidung: NAT Gateway pro Availability Zone**
+Für eine erhöhte Ausfallsicherheit wird in jeder Availability Zone (AZ), die Subnetze beherbergt, ein eigenes NAT Gateway im jeweiligen öffentlichen Subnetz provisioniert. Jedes NAT Gateway erhält eine eigene Elastic IP. Entsprechend gibt es für jede AZ eine dedizierte private Routing-Tabelle, die den ausgehenden Internetverkehr der privaten Subnetze dieser AZ über das NAT Gateway derselben AZ leitet. Diese Strategie verhindert, dass der Ausfall eines einzelnen NAT Gateways die Konnektivität für alle privaten Subnetze beeinträchtigt.
+
+**Kernkomponenten und Terraform-Konfigurationen:**
+
+1.  **Variablen (`variables.tf`):**
+    *   `vpc_cidr_block`: Definiert den CIDR-Bereich für die VPC (Standard: `"10.0.0.0/16"`).
+    *   `availability_zones`: Liste der zu verwendenden AZs (Standard: `["eu-central-1a", "eu-central-1b"]`).
+    *   `public_subnet_cidrs`: CIDR-Blöcke für öffentliche Subnetze, korrespondierend zu den AZs.
+    *   `private_subnet_cidrs`: CIDR-Blöcke für private Subnetze, korrespondierend zu den AZs.
+    *   `project_name`: Wird für die Benennung und Tagging der Ressourcen verwendet.
+
+2.  **VPC (`aws_vpc.main`):**
+    Die VPC wird mit dem definierten CIDR-Block erstellt. DNS-Hostnamen und DNS-Unterstützung sind aktiviert.
+    ```terraform
+    // src/terraform/network.tf
+    resource "aws_vpc" "main" {
+      cidr_block           = var.vpc_cidr_block
+      enable_dns_support   = true
+      enable_dns_hostnames = true
+
+      tags = merge(
+        local.common_tags,
+        { Name = "${var.project_name}-vpc" }
+      )
+    }
+    ```
+    *Hinweis: Die `local.common_tags` (`Projekt`, `Student`, `ManagedBy`) werden automatisch durch die Provider-Konfiguration oder explizites `merge` hinzugefügt.*
+
+3.  **Subnetze (`aws_subnet.public`, `aws_subnet.private`):**
+    Öffentliche und private Subnetze werden dynamisch basierend auf den `availability_zones` und den jeweiligen CIDR-Listen erstellt. Öffentliche Subnetze erhalten `map_public_ip_on_launch = true`.
+    ```terraform
+    // Gekürztes Beispiel für öffentliche Subnetze
+    resource "aws_subnet" "public" {
+      count                   = length(var.public_subnet_cidrs)
+      vpc_id                  = aws_vpc.main.id
+      cidr_block              = var.public_subnet_cidrs[count.index]
+      availability_zone       = var.availability_zones[count.index]
+      map_public_ip_on_launch = true
+      tags = merge(local.common_tags, {
+        Name = "${var.project_name}-public-subnet-${var.availability_zones[count.index]}"
+      })
+    }
+    ```
+
+4.  **Internet Gateway (`aws_internet_gateway.main_igw`):**
+    Ein IGW wird erstellt und an die VPC angehängt.
+
+5.  **NAT Gateways pro AZ (`aws_eip.nat_eip_per_az`, `aws_nat_gateway.nat_gw_per_az`):**
+    Für jede in `var.availability_zones` definierte AZ wird eine Elastic IP und ein NAT Gateway im öffentlichen Subnetz dieser AZ erstellt.
+    ```terraform
+    resource "aws_eip" "nat_eip_per_az" {
+      count  = length(var.availability_zones)
+      domain = "vpc"
+      tags = merge(local.common_tags, {
+        Name = "${var.project_name}-nat-eip-${var.availability_zones[count.index]}"
+      })
+    }
+
+    resource "aws_nat_gateway" "nat_gw_per_az" {
+      count         = length(var.availability_zones)
+      allocation_id = aws_eip.nat_eip_per_az[count.index].id
+      subnet_id     = aws_subnet.public[count.index].id
+      tags = merge(local.common_tags, {
+        Name = "${var.project_name}-nat-gw-${var.availability_zones[count.index]}"
+      })
+      depends_on = [aws_internet_gateway.main_igw]
+    }
+    ```
+
+6.  **Routing-Tabellen:**
+    *   **Öffentliche Route-Tabelle (`aws_route_table.public_rt`):** Eine gemeinsame Tabelle, die Traffic (`0.0.0.0/0`) zum IGW leitet und mit allen öffentlichen Subnetzen assoziiert wird (`aws_route_table_association.public_rt_association`).
+    *   **Private Route-Tabellen pro AZ (`aws_route_table.private_rt_per_az`):** Für jede AZ wird eine separate private Route-Tabelle erstellt. Jede leitet Traffic (`0.0.0.0/0`) zum NAT Gateway in derselben AZ. Die privaten Subnetze werden dann mit der jeweiligen AZ-spezifischen privaten Route-Tabelle assoziiert (`aws_route_table_association.private_rt_association_per_az`).
+        ```terraform
+        resource "aws_route_table" "private_rt_per_az" {
+          count  = length(var.availability_zones)
+          vpc_id = aws_vpc.main.id
+          route {
+            cidr_block     = "0.0.0.0/0"
+            nat_gateway_id = aws_nat_gateway.nat_gw_per_az[count.index].id
+          }
+          // ... tags ...
+        }
+
+        resource "aws_route_table_association" "private_rt_association_per_az" {
+          count          = length(aws_subnet.private)
+          subnet_id      = aws_subnet.private[count.index].id
+          route_table_id = aws_route_table.private_rt_per_az[count.index].id
+        }
+        ```
+Diese Konfiguration stellt ein robustes und hochverfügbares Netzwerkfundament bereit.
 
 #### 4.1.3 Provisionierung des EKS Clusters und der ECR
 
