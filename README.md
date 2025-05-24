@@ -499,6 +499,16 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
       * Diese Tags werden mittels des `default_tags` Blocks in der AWS Provider-Konfiguration automatisch an alle zukünftig erstellten, unterstützten Ressourcen propagiert.
       * `terraform init` erfolgreich ausgeführt, um Provider-Plugins zu laden.
       * Diese Konfiguration stellt die Basis für die nachfolgende Erstellung der VPC (User Story #5) dar, welche dann diese Tags automatisch erhalten wird. Die Sichtbarkeit der Tags auf Ressourcen wird im Rahmen der VPC-Erstellung verifiziert.
+  * **Grundlegendes AWS VPC-Netzwerk via Terraform provisioniert (User Story #5 ✓):**
+  * Konfigurierbarer VPC CIDR-Block (`10.0.0.0/16` als Standard).
+  * Jeweils mindestens zwei öffentliche und zwei private Subnetze über zwei Availability Zones (`eu-central-1a`, `eu-central-1b` als Standard) erstellt.
+  * Internet Gateway erstellt und der VPC zugeordnet.
+  * Routing-Tabellen für öffentliche Subnetze mit Route zum IGW konfiguriert und mit den öffentlichen Subnetzen assoziiert.
+  * Für Hochverfügbarkeit wurde **ein NAT Gateway pro Availability Zone** in den jeweiligen öffentlichen Subnetzen erstellt, jeweils mit einer zugehörigen Elastic IP.
+  * **Dedizierte Routing-Tabellen für private Subnetze pro Availability Zone** konfiguriert. Jede dieser Tabellen leitet ausgehenden Internetverkehr (`0.0.0.0/0`) über das NAT Gateway in derselben AZ. Die privaten Subnetze sind entsprechend mit ihrer AZ-spezifischen privaten Routing-Tabelle assoziiert.
+  * `terraform validate`, `plan` und `apply` erfolgreich ausgeführt und Ressourcen verifiziert.
+  * Netzwerkarchitektur-Diagramm in Abschnitt [3.3.2](#332-aws-netzwerkarchitektur-vpc-detail) dokumentiert und aktualisiert, um die NAT-Gateway-pro-AZ-Architektur darzustellen.
+  * Alle Ressourcen sind korrekt mit den globalen Tags (`Projekt`, `Student`, `ManagedBy`) versehen (verifiziert im Rahmen des Testfalls für User Story #7).
 * **Sprint Review (Kurzfazit & Demo-Highlight):**
     * Sichere AWS-Umgebung etabliert, bereit für Terraform-Provisionierung
     * **Self-Review für User Story #37 durchgeführt:**
