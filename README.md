@@ -858,6 +858,25 @@ Das folgende Diagramm visualisiert diese Architektur:
 
 * *(Kurze Beschreibung der Hauptkomponenten und wie sie interagieren)*
 
+#### 3.3.4 AWS EKS Architektur Detail
+
+Der AWS Elastic Kubernetes Service (EKS) bildet das Herzstück der Container-Orchestrierungsplattform für die Nextcloud-Anwendung. Die Architektur ist darauf ausgelegt, die von AWS verwaltete Control Plane zu nutzen und die Worker Nodes sicher innerhalb der in [Abschnitt 3.3.2](#332-aws-netzwerkarchitektur-vpc-detail) definierten VPC zu betreiben.
+
+*   **EKS Control Plane:** Von AWS verwaltet, hochverfügbar über mehrere Availability Zones. Die Kommunikation mit der Control Plane erfolgt über einen API-Server-Endpunkt. Für den Zugriff durch `kubectl` und andere Management-Tools wird dieser Endpunkt genutzt. Die Control Plane selbst residiert nicht direkt in der User-VPC, sondern interagiert über Elastic Network Interfaces (ENIs), die in den angegebenen Subnetzen der VPC platziert werden (typischerweise öffentliche Subnetze für den öffentlichen Endpunkt).
+*   **EKS Managed Node Groups:** Die Worker Nodes, auf denen die Nextcloud-Pods laufen werden, werden als Teil von Managed Node Groups in den **privaten Subnetzen** der VPC provisioniert. Dies schützt die Nodes vor direktem Zugriff aus dem Internet. Die Nodes benötigen ausgehenden Internetzugriff (über die NAT Gateways in den öffentlichen Subnetzen) für das Herunterladen von Images, Updates und die Kommunikation mit AWS-Diensten.
+*   **IAM-Rollen:**
+    *   **EKS Cluster Role:** Ermächtigt den EKS-Service, AWS-Ressourcen im Namen des Clusters zu verwalten (z.B. Load Balancer, ENIs).
+    *   **EKS Node Role:** Wird von den EC2-Instanzen der Worker Nodes übernommen und gewährt ihnen die notwendigen Berechtigungen, um sich beim Cluster zu registrieren, Container-Images aus ECR zu ziehen (`AmazonEC2ContainerRegistryReadOnly`), Protokolle an CloudWatch zu senden und Netzwerkoperationen durchzuführen (`AmazonEKS_CNI_Policy`, `AmazonEKSWorkerNodePolicy`).
+*   **Netzwerk-Kommunikation:**
+    *   Der EKS-Cluster benötigt spezifische Security Groups, um die Kommunikation zwischen der Control Plane und den Worker Nodes sowie für den Pod-zu-Pod-Verkehr zu ermöglichen. Terraform managt die Erstellung und Konfiguration dieser Security Groups.
+    *   Die Worker Nodes in den privaten Subnetzen kommunizieren mit der Control Plane über deren ENIs und für ausgehenden Verkehr mit dem Internet über die NAT Gateways.
+
+Das folgende Diagramm illustriert die EKS-Architektur innerhalb der bestehenden VPC:
+
+[PLATZHALTER]
+![AWS EKS Architektur Detail](assets/images/eks_architecture_detail.png)
+*(Diagramm: Stellt die VPC mit öffentlichen/privaten Subnetzen dar. Die EKS Control Plane als AWS Managed Service außerhalb, mit Pfeilen zu ENIs in den (typischerweise öffentlichen) Subnetzen. Worker Nodes (EC2-Instanzen) befinden sich in den privaten Subnetzen. Pfeile zeigen Kommunikation von Nodes zu Control Plane ENIs und über NAT Gateways nach außen. Optional: Load Balancer in öffentlichen Subnetzen, der auf Services auf den Worker Nodes zeigt.)*
+
 ---
 
 ## 4. Implementierung und Technische Umsetzung
