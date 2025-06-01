@@ -1094,7 +1094,159 @@ Diese Konfiguration stellt ein robustes und hochverfügbares Netzwerkfundament b
 
 #### 4.1.3 Provisionierung des EKS Clusters und der ECR
 
-* *(Wichtige Code-Snippets, Entscheidungen)*
+Der AWS Elastic Kubernetes Service (EKS) Cluster und die zugehörigen Worker Nodes werden mittels Terraform provisioniert. Dies beinhaltet die Definition der Control Plane, der Node Groups sowie der notwendigen IAM-Rollen und -Policies. Die Elastic Container Registry (ECR) wird in einem nachfolgenden Schritt (User Story #9) ebenfalls via Terraform erstellt.
+
+**1. IAM-Rollen für EKS (`iam_eks.tf`)**
+
+Zwei primäre IAM-Rollen sind für den Betrieb von EKS erforderlich:
+
+*   **EKS Cluster IAM Role:** Diese Rolle wird vom EKS Control Plane Service übernommen, um AWS-Ressourcen wie Load Balancer oder ENIs im Namen des Clusters zu verwalten.
+    *   **Terraform Ressource:** `aws_iam_role.eks_cluster_role`
+    *   **Trust Policy:** Erlaubt dem Service `eks.amazonaws.com` die Annahme der Rolle.
+        ```terraform
+        // src/terraform/iam_eks.tf
+        resource "aws_iam_role" "eks_cluster_role" {
+          name = "${var.project_name}-eks-cluster-role"
+
+          assume_role_policy = jsonencode({
+            Version = "2012-10-17",
+            Statement = [
+              {
+                Effect    = "Allow",
+                Action    = "sts:AssumeRole",
+                Principal = {
+                  Service = "eks.amazonaws.com"
+                }
+              }
+            ]
+          })
+          # ... tags ...
+        }
+        ```
+    *   **Angehängte Policy:** `AmazonEKSClusterPolicy`.
+        ```terraform
+        // src/terraform/iam_eks.tf
+        resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+          policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+          role       = aws_iam_role.eks_cluster_role.name
+        }
+        ```
+
+*   **EKS Node IAM Role:** Diese Rolle wird von den EC2-Instanzen der Worker Nodes übernommen. Sie gewährt den Nodes die Berechtigungen, sich beim Cluster zu registrieren, Container-Images zu pullen, Logs zu schreiben und Netzwerkoperationen durchzuführen.
+    *   **Terraform Ressource:** `aws_iam_role.eks_node_role`
+    *   **Trust Policy:** Erlaubt dem Service `ec2.amazonaws.com` die Annahme der Rolle.
+        ```terraform
+        // src/terraform/iam_eks.tf
+        resource "aws_iam_role" "eks_node_role" {
+          name = "${var.project_name}-eks-node-role"
+
+          assume_role_policy = jsonencode({
+            Version = "2012-10-17",
+            Statement = [
+              {
+                Effect    = "Allow",
+                Action    = "sts:AssumeRole",
+                Principal = {
+                  Service = "ec2.amazonaws.com"
+                }
+              }
+            ]
+          })
+          # ... tags ...
+        }
+        ```
+    *   **Angehängte Policies:** `AmazonEKSWorkerNodePolicy`, `AmazonEC2ContainerRegistryReadOnly`, `AmazonEKS_CNI_Policy`.
+        ```terraform
+        // src/terraform/iam_eks.tf
+        resource "aws_iam_role_policy_attachment" "eks_node_AmazonEKSWorkerNodePolicy" {
+          policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+          role       = aws_iam_role.eks_node_role.name
+        }
+        resource "aws_iam_role_policy_attachment" "eks_node_AmazonEC2ContainerRegistryReadOnly" {
+          policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+          role       = aws_iam_role.eks_node_role.name
+        }
+        resource "aws_iam_role_policy_attachment" "eks_node_AmazonEKS_CNI_Policy" {
+          policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+          role       = aws_iam_role.eks_node_role.name
+        }
+        ```
+
+**2. EKS Control Plane (`eks_cluster.tf`)**
+
+Die EKS Control Plane wird mit der Ressource `aws_eks_cluster` definiert.
+```terraform
+// src/terraform/eks_cluster.tf
+resource "aws_eks_cluster" "main" {
+  name     = "${var.project_name}-eks-cluster"
+  role_arn = aws_iam_role.eks_cluster_role.arn
+  version  = var.eks_cluster_version
+
+  vpc_config {
+    subnet_ids              = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
+    endpoint_private_access = var.eks_endpoint_private_access
+    endpoint_public_access  = var.eks_endpoint_public_access
+    public_access_cidrs     = var.eks_public_access_cidrs
+  }
+
+  tags = merge(
+    local.common_tags,
+    { Name = "${var.project_name}-eks-cluster" }
+  )
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy,
+  ]
+}
+```
+
+**3. EKS Managed Node Group (`eks_nodegroup.tf`)**
+
+Die Worker Nodes werden in einer `aws_eks_node_group` in den privaten Subnetzen platziert.
+```terraform
+// src/terraform/eks_nodegroup.tf
+resource "aws_eks_node_group" "main_nodes" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "${var.project_name}-main-nodes"
+  node_role_arn   = aws_iam_role.eks_node_role.arn
+  subnet_ids      = aws_subnet.private[*].id // Worker Nodes in privaten Subnetzen
+
+  instance_types = var.eks_node_instance_types
+  capacity_type  = "ON_DEMAND"
+
+  scaling_config {
+    desired_size = var.eks_node_desired_count
+    max_size     = var.eks_node_max_count
+    min_size     = var.eks_node_min_count
+  }
+
+  update_config {
+    max_unavailable_percentage = 50
+  }
+
+  tags = merge(
+    local.common_tags,
+    { Name = "${var.project_name}-main-node-group" }
+  )
+
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_role_policy_attachment.eks_node_AmazonEKSWorkerNodePolicy,
+    # ... andere Node Policy Attachments ...
+  ]
+}
+```
+Die Variablen (z.B. `var.eks_cluster_version`, `var.eks_node_instance_types`, `var.eks_node_desired_count`) sind in `variables.tf` definiert.
+
+**4. Konfiguration von `kubectl`**
+
+Nach erfolgreichem `terraform apply` wird `kubectl` für den Zugriff auf den neuen Cluster konfiguriert. Dies erfolgt durch Ausführen des folgenden Befehls in der Kommandozeile, wobei die Platzhalter durch die entsprechenden Terraform-Outputs oder direkten Werte ersetzt werden:
+```bash
+aws eks update-kubeconfig --region $(terraform output -raw aws_region) --name $(terraform output -raw eks_cluster_name) --profile nextcloud-project
+```
+Dieser Befehl aktualisiert die lokale `kubeconfig`-Datei (typischerweise `~/.kube/config`), sodass `kubectl`-Befehle gegen den neu erstellten EKS-Cluster ausgeführt werden können. Anschliessend kann der Status der Nodes mit `kubectl get nodes` überprüft werden.
+
+*(Der Abschnitt zur ECR-Provisionierung wird hier ergänzt, sobald User Story #9 umgesetzt ist.)*
 
 #### 4.1.4 Provisionierung der RDS Datenbank und IAM-Rollen
 
