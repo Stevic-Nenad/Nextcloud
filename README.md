@@ -1434,6 +1434,32 @@ Dieser Befehl aktualisiert die lokale `kubeconfig`-Datei (typischerweise `~/.kub
     *   Screenshot des S3 Buckets, der die State-Datei unter dem Key `nextcloud-app/main.tfstate` zeigt.
     *   Konsolenausgabe von `terraform init` (aus `src/terraform/`).
 
+---
+
+**Testfall: Provisionierung des EKS Clusters und der Node Groups**
+*   **Zugehörige User Story:** `Nextcloud#8` - EKS Cluster mit Node Groups provisionieren (via Terraform)
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Verifizieren, dass der EKS Cluster und mindestens eine Managed Node Group erfolgreich via Terraform provisioniert werden, die Nodes im 'Ready'-Status sind und die Konfiguration den Akzeptanzkriterien entspricht.
+*   **Testschritte:**
+    1.  Terraform-Konfiguration für EKS Cluster, IAM-Rollen und Managed Node Group erstellen/erweitern.
+    2.  `terraform validate` ausführen.
+    3.  `terraform plan` ausführen und den Plan überprüfen.
+    4.  `terraform apply -auto-approve` ausführen.
+    5.  Nach erfolgreichem `apply`, `kubeconfig` aktualisieren mit:
+        `aws eks update-kubeconfig --region <region> --name <cluster_name> --profile <aws_profile>`
+    6.  `kubectl get nodes -o wide` ausführen.
+    7.  In der AWS Management Console überprüfen:
+        *   EKS Cluster Status (Aktiv, korrekte K8s Version).
+        *   IAM Rollen für Cluster und Nodes mit den korrekten Policies.
+        *   Managed Node Group Status (Aktiv, korrekte Instanztypen, Skalierung).
+        *   EC2-Instanzen der Worker Nodes: Sicherstellen, dass sie in den **privaten Subnetzen** laufen (überprüfen der Subnet-ID der Instanzen).
+*   **Erwartetes Ergebnis:**
+    *   `terraform apply` läuft erfolgreich durch.
+    *   `kubectl get nodes` zeigt die konfigurierte Anzahl an Worker Nodes im 'Ready'-Status. Die IP-Adressen der Nodes sollten aus den privaten Subnetz-CIDRs stammen.
+    *   Alle in den Akzeptanzkriterien genannten Punkte sind in der AWS Konsole verifizierbar (IAM Rollen korrekt, Node Group Parameter, K8s Version).
+*   **Tatsächliches Ergebnis:** `terraform apply` war erfolgreich nach Behebung eines `MalformedPolicyDocument`-Fehlers bei der `eks_cluster_role` und einer Syntaxkorrektur bei der `eks_node_role`. `kubectl get nodes -o wide` zeigte **2** Worker Nodes im 'Ready'-Status mit privaten IP-Adressen an. Alle Konfigurationen (IAM-Rollen, Kubernetes-Version `1.33`, Node Group Parameter, Platzierung der Nodes in privaten Subnetzen) wurden in der AWS Konsole wie erwartet verifiziert.*
+*   **Nachweis:** Screenshot von `kubectl get nodes` in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `eks_nodes_ready.png` (oder ähnlich).
+
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
 [PLATZHALTER]
@@ -1444,6 +1470,12 @@ Dieser Befehl aktualisiert die lokale `kubeconfig`-Datei (typischerweise `~/.kub
 [PLATZHALTER]
 *   **Überprüfung der VPC-Grundfunktionalität (User Story #5):**
     *   Die erfolgreiche Ausführung von `terraform apply` und die stichprobenartige Überprüfung der Kernkomponenten (VPC, Subnetze, IGW, NAT Gateways, Routen) in der AWS Konsole dienen als Nachweis für die korrekte Provisionierung. Detaillierte Screenshots für jeden einzelnen Verifizierungsschritt werden nicht beigefügt, um die Dokumentation schlank zu halten, können aber bei Bedarf nachgereicht werden. Die Terraform Outputs bestätigen ebenfalls die Erstellung der Ressourcen-IDs.
+
+[PLATZHALTER]
+*   **Überprüfung der EKS Worker Nodes (User Story #8):**
+    *   ![Nachweis EKS Nodes Ready](assets/images/tests/eks_nodes_ready.png)
+        *(Beschreibung: Screenshot der Ausgabe von `kubectl get nodes -o wide`, der die Worker Nodes im Status "Ready" mit ihren privaten IP-Adressen zeigt.)*
+
 ---
 
 ## 6. Projektdokumentation (Zusammenfassung)
