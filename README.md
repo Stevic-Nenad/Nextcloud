@@ -629,7 +629,21 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * `Nextcloud#14`: Nextcloud manuell auf EKS deployen (PoC)
     * `Nextcloud#15`: Manuelle Deployment-Schritte dokumentieren
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-* **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+* **Erreichtes Inkrement / Ergebnisse:**
+    *   **EKS Cluster und Node Groups provisioniert (User Story #8 ✓):**
+        *   Die EKS Control Plane wurde mit der Kubernetes-Version `1.29` (konfigurierbar via Terraform-Variable `var.eks_cluster_version`) erfolgreich erstellt.
+        *   Die notwendige IAM Rolle (`${var.project_name}-eks-cluster-role`) für den EKS Cluster mit der angehängten `AmazonEKSClusterPolicy` wurde erstellt und korrekt konfiguriert.
+        *   Mindestens eine EKS Managed Node Group (`${var.project_name}-main-nodes`) wurde erstellt.
+            *   Instanztyp: `t3.medium` (konfigurierbar via `var.eks_node_instance_types`).
+            *   Skalierungsparameter: Min: 1, Max: 3, Desired: 2 (konfigurierbar via `var.eks_node_min_count`, `var.eks_node_max_count`, `var.eks_node_desired_count`).
+        *   Die Worker Nodes wurden erfolgreich in den privaten Subnetzen (`aws_subnet.private[*].id`) der in Sprint 1 erstellten VPC platziert.
+        *   Die notwendige IAM Rolle (`${var.project_name}-eks-node-role`) für die Node Groups (inkl. der Policies: `AmazonEKSWorkerNodePolicy`, `AmazonEC2ContainerRegistryReadOnly`, `AmazonEKS_CNI_Policy`) wurde erstellt und korrekt konfiguriert.
+        *   Der Befehl `terraform apply` provisionierte den Cluster und die Node Groups erfolgreich, nachdem initiale Probleme mit der `assume_role_policy` der Cluster-Rolle behoben wurden.
+        *   Die `kubeconfig`-Datei wurde mittels `aws eks update-kubeconfig --region $(terraform output -raw aws_region) --name $(terraform output -raw eks_cluster_name) --profile nextcloud-project` aktualisiert.
+        *   Der Befehl `kubectl get nodes -o wide` zeigte die 2 Worker Nodes im 'Ready'-Status mit privaten IP-Adressen an.
+        *   Die Dokumentation der EKS-Architektur wurde in Abschnitt [3.3.4](#334-aws-eks-architektur-detail) (neu) und [4.1.3](#413-provisionierung-des-eks-clusters-und-der-ecr) aktualisiert.
+        *   Alle Akzeptanzkriterien für User Story #8 sind erfüllt.
+    *   *(Weitere Ergebnisse für andere User Stories in Sprint 2 werden hier ergänzt, z.B. für #9, #10, #11)*
 * **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 * **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
