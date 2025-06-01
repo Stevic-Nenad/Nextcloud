@@ -32,3 +32,39 @@ output "nat_gateway_ids" {
   description = "List of IDs of the NAT Gateways (one per AZ)."
   value       = aws_nat_gateway.nat_gw_per_az[*].id
 }
+
+output "eks_cluster_name" {
+  description = "The name of the EKS cluster."
+  value       = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  description = "Endpoint for your EKS Kubernetes API server."
+  value       = aws_eks_cluster.main.endpoint
+}
+
+output "eks_cluster_certificate_authority_data" {
+  description = "Base64 encoded certificate data required to communicate with your cluster."
+  value       = aws_eks_cluster.main.certificate_authority[0].data
+  sensitive   = true // Mark as sensitive as it's credential-like
+}
+
+output "eks_node_group_role_arn" {
+  description = "ARN of the IAM role for the EKS Node Group."
+  value       = aws_iam_role.eks_node_role.arn
+}
+
+output "eks_cluster_version_output" {
+  description = "The Kubernetes version of the EKS cluster."
+  value       = aws_eks_cluster.main.version
+}
+
+output "eks_node_group_name" {
+  description = "The name of the EKS managed node group."
+  value       = aws_eks_node_group.main_nodes.node_group_name
+}
+
+output "eks_node_group_status" {
+  description = "The status of the EKS managed node group."
+  value       = aws_eks_node_group.main_nodes.status
+}
