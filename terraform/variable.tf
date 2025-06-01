@@ -35,3 +35,21 @@ variable "project_name" {
   type        = string
   default     = "Nextcloud"
 }
+
+variable "eks_cluster_version" {
+  description = "Desired Kubernetes version for the EKS cluster."
+  type        = string
+  default     = "1.33" //newest as of 01.06.2025
+}
+
+variable "eks_public_access_cidrs" {
+  description = "List of CIDR blocks. Indicates from which CIDR blocks find users matching clusters to ARN."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "eks_node_instance_types" {
+  description = "Instance types for the EKS_node group."
+  type        = list(string)
+  default     = ["m6i.large"]
+}
