@@ -68,3 +68,13 @@ output "eks_node_group_status" {
   description = "The status of the EKS managed node group."
   value       = aws_eks_node_group.main_nodes.status
 }
+
+output "ecr_repository_url" {
+  description = "The URL of the ECR repository."
+  value       = aws_ecr_repository.nextcloud_app.repository_url
+}
+
+output "ebs_csi_driver_role_arn" {
+  description = "The ARN of the IAM role for the EBS CSI Driver Service Account."
+  value       = aws_iam_role.ebs_csi_driver_role.arn
+}

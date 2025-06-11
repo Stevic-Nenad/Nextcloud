@@ -53,3 +53,9 @@ variable "eks_node_instance_types" {
   type        = list(string)
   default     = ["m6i.large"]
 }
+
+variable "ecr_repository_name" {
+  description = "The name of the ECR repository for the application images."
+  type        = string
+  default     = "nextcloud-app"
+}
