@@ -1450,15 +1450,168 @@ Dieser Befehl aktualisiert die lokale `kubeconfig`-Datei (typischerweise `~/.kub
 gegen den neu erstellten EKS-Cluster ausgeführt werden können. Anschliessend kann der Status der Nodes mit
 `kubectl get nodes` überprüft werden.
 
-*(Der Abschnitt zur ECR-Provisionierung wird hier ergänzt, sobald User Story #9 umgesetzt ist.)*
+**5. ECR Repository (`ecr.tf`)**
 
-#### 4.1.4 Provisionierung der RDS Datenbank und IAM-Rollen
+Um die Docker-Images der Nextcloud-Anwendung sicher zu speichern und für den EKS-Cluster bereitzustellen, wird ein privates Amazon Elastic Container Registry (ECR) Repository via Terraform provisioniert.
 
-* *(Wichtige Code-Snippets, Entscheidungen)*
+*   **Repository-Erstellung (`aws_ecr_repository`):** Erstellt das eigentliche Repository. Wichtige Parameter sind:
+    *   `name`: Der Name des Repositories, gesteuert über die Variable `var.ecr_repository_name`.
+    *   `image_scanning_configuration`: Aktiviert das automatische Scannen von Images beim Hochladen (`scan_on_push = true`), um frühzeitig Sicherheitslücken zu erkennen.
 
-#### 4.1.5 Secrets Management für Terraform (AWS Credentials in CI/CD)
+*   **Lifecycle Policy (`aws_ecr_lifecycle_policy`):** Um die Kosten zu kontrollieren und das Repository sauber zu halten, wird eine Lifecycle-Policy definiert. Diese Policy löscht automatisch alle Images, die keinem Tag mehr zugeordnet sind (z.B. nach einem `docker push` mit dem gleichen Tag auf ein neues Image) und älter als 30 Tage sind.
 
-* *(Gewählter Ansatz)*
+```terraform
+// src/terraform/ecr.tf
+resource "aws_ecr_repository" "nextcloud_app" {
+  name                 = var.ecr_repository_name
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.ecr_repository_name}-repo"
+    }
+  )
+}
+
+resource "aws_ecr_lifecycle_policy" "nextcloud_app_policy" {
+  repository = aws_ecr_repository.nextcloud_app.name
+
+  policy = jsonencode({
+    rules = [
+      # 1. Expire untagged images older than 30 days
+      {
+        rulePriority = 1,
+        description  = "Expire untagged images >30 days",
+        selection = {
+          tagStatus   = "untagged",
+          countType   = "sinceImagePushed",
+          countUnit   = "days",
+          countNumber = 30
+        },
+        action = { type = "expire" }
+      },
+      # 2. Retain only the 10 most-recent tagged images
+      {
+        rulePriority = 2,
+        description  = "Keep last 10 tagged images",
+        selection = {
+          tagStatus   = "tagged",
+          countType   = "imageCountMoreThan",
+          countNumber = 10
+        },
+        action = { type = "expire" }
+      }
+    ]
+  })
+}
+
+```
+
+#### 4.1.4 Provisionierung von IAM für Service Accounts (IRSA)
+
+Um Pods im EKS-Cluster den sicheren, passwortlosen Zugriff auf AWS-Dienste zu ermöglichen, wird **IAM Roles for Service Accounts (IRSA)** konfiguriert. Dies ist der von AWS empfohlene Best Practice und vermeidet die Verwendung von langlebigen IAM-Benutzer-Anmeldeinformationen in Pods.
+
+Der Prozess besteht aus zwei Hauptschritten:
+
+1.  **Einmalige Einrichtung eines OIDC Providers:** Es wird eine Vertrauensstellung zwischen dem EKS-Cluster und AWS IAM hergestellt. Der Cluster agiert als OpenID Connect (OIDC) Identity Provider.
+2.  **Erstellung von IAM-Rollen pro Anwendung:** Für jede Anwendung (oder jeden AWS-Dienst), die aus dem Cluster heraus auf AWS-Ressourcen zugreifen muss (z.B. der EBS CSI Driver, der AWS Load Balancer Controller), wird eine dedizierte IAM-Rolle mit einer spezifischen Trust Policy erstellt.
+
+Die Terraform-Konfiguration dafür befindet sich in `src/terraform/iam_irsa.tf`.
+
+```terraform
+// src/terraform/iam_irsa.tf
+
+# 1. OIDC Provider einrichten
+data "tls_certificate" "eks_oidc_thumbprint" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks_oidc_thumbprint.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+
+  # ... tags ...
+}
+
+# 2. Spezifische IAM-Rolle für den EBS CSI Driver erstellen
+resource "aws_iam_role" "ebs_csi_driver_role" {
+  name = "${var.project_name}-ebs-csi-driver-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc_provider.arn
+        },
+        Condition = {
+          StringEquals = {
+            # Bindet die Rolle an den exakten Service Account
+            "${aws_eks_cluster.main.identity[0].oidc[0].issuer}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          }
+        }
+      }
+    ]
+  })
+  # ... tags ...
+}
+
+# Notwendige AWS Policy an die Rolle anhängen
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.ebs_csi_driver_role.name
+}
+```
+Diese Konfiguration ermöglicht es, einem Kubernetes Service Account (`ebs-csi-controller-sa`) die Annotation `eks.amazonaws.com/role-arn` mit dem ARN der `ebs_csi_driver_role` hinzuzufügen. Der Pod, der diesen Service Account verwendet, erhält dann automatisch temporäre AWS-Anmeldeinformationen mit den Berechtigungen der `AmazonEBSCSIDriverPolicy`.
+
+#### 4.1.5 Persistent Storage (EBS CSI Driver)
+
+Für stateful Applikationen wie Nextcloud ist persistenter Speicher unerlässlich. Der **AWS EBS CSI Driver** ist die Brücke zwischen Kubernetes und AWS Elastic Block Store (EBS). Er ermöglicht es Kubernetes, dynamisch EBS Volumes für `PersistentVolumeClaims` (PVCs) zu erstellen und zu verwalten.
+
+**Entscheidungsfindung: EKS Add-on vs. Helm Chart**
+
+Für die Installation des EBS CSI Drivers gibt es zwei gängige Methoden: die Installation via Helm Chart oder die Verwendung des EKS-verwalteten Add-ons. Für dieses Projekt wurde bewusst die Methode des **EKS Add-ons** gewählt.
+
+*   **Begründung:** Der EBS CSI Driver ist keine typische Endanwendung, sondern eine fundamentale Infrastrukturkomponente des Clusters – vergleichbar mit einem Systemtreiber. Die Verwendung des EKS-verwalteten Add-ons ist die von AWS empfohlene Best Practice und bietet entscheidende Vorteile:
+    *   **Stabilität und Kompatibilität:** AWS stellt sicher, dass die Add-on-Version stets mit der EKS-Cluster-Version kompatibel ist, was das Risiko von Konflikten minimiert.
+    *   **Vereinfachte Verwaltung:** Updates des Drivers können über die EKS-Konsole oder die AWS API/Terraform gesteuert werden, was den Lebenszyklus vereinfacht.
+    *   **Klare Trennung:** Diese Wahl unterstreicht die architektonische Trennung zwischen der Basisinfrastruktur des Clusters (verwaltet durch Terraform und Add-ons) und den darauf laufenden Applikationen (verwaltet durch Helm).
+
+Während Helm das primäre Werkzeug für das Deployment der **Nextcloud-Anwendung** sein wird (siehe Sprint 4), wird für diese kritische Basiskomponente der robustere und stärker integrierte Ansatz des EKS Add-ons bevorzugt.
+
+Die Installation erfolgt somit direkt über Terraform in der Datei `src/terraform/eks_addons.tf`.
+
+```terraform
+// src/terraform/eks_addons.tf
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "aws-ebs-csi-driver"
+
+  # Verknüpfung mit der via IRSA erstellten IAM-Rolle
+  service_account_role_arn = aws_iam_role.ebs_csi_driver_role.arn
+
+  resolve_conflicts_on_create = "OVERWRITE"
+
+  # ... tags ...
+}
+```
+Die `service_account_role_arn` ist der entscheidende Parameter, der dem Add-on die Berechtigung gibt, über die zuvor in Abschnitt [4.1.4](#414-provisionierung-von-iam-für-service-accounts-irsa) definierte IAM-Rolle zu agieren.
+
+#### 4.1.6 Provisionierung der RDS Datenbank und IAM-Rollen
+
+*(Wichtige Code-Snippets, Entscheidungen)*
+
+#### 4.1.7 Secrets Management für Terraform (AWS Credentials in CI/CD)
+
+*(Gewählter Ansatz)*
 
 ### 4.2 Nextcloud Helm Chart Entwicklung
 
