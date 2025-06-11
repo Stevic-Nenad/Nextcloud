@@ -735,6 +735,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         * Der URI des Repositories (`repository_url`) wird nun als Terraform-Output ausgegeben, um ihn in nachfolgenden CI/CD-Schritten einfach referenzieren zu können.
         * `terraform apply` wurde erfolgreich ausgeführt und das Repository in der AWS Konsole verifiziert.
         * Alle DoD-Punkte für diese User Story sind erfüllt.
+    * **IAM OIDC Provider für EKS konfiguriert (User Story #10 ✓):**
+        * Der IAM OIDC Identity Provider wurde mittels der Ressource `aws_iam_openid_connect_provider` in AWS IAM erstellt und ist korrekt mit dem OIDC-Issuer des EKS-Clusters verknüpft.
+        * Der Root-CA-Thumbprint des OIDC-Endpunkts wurde dynamisch und sicher über die `tls_certificate` Datenquelle ermittelt.
+        * Eine beispielhafte IAM-Rolle (`${var.project_name}-ebs-csi-driver-role`) für den AWS EBS CSI Driver wurde erstellt.
+        * Die Trust Policy dieser Rolle wurde so konfiguriert, dass sie nur vom Kubernetes Service Account `ebs-csi-controller-sa` im Namespace `kube-system` übernommen werden kann. Dies legt den Grundstein für sichere, anmeldeinformationsfreie AWS-API-Aufrufe aus Pods (IRSA).
+        * Die AWS-verwaltete `AmazonEBSCSIDriverPolicy` wurde an die Rolle angehängt.
+        * `terraform apply` wurde erfolgreich ausgeführt und die Konfiguration in der AWS Konsole verifiziert.
 
 ---
 
