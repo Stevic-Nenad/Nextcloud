@@ -1906,6 +1906,87 @@ Die `service_account_role_arn` ist der entscheidende Parameter, der dem Add-on d
 * **Nachweis:** Screenshot von `kubectl get nodes` in
   Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `eks_nodes_ready.png` (oder ähnlich).
 
+---
+
+**Testfall: ECR Repository Provisionierung und Konfiguration**
+
+* **Zugehörige User Story:** `Nextcloud#9` - ECR Repository via Terraform erstellen
+* **Status:** Abgeschlossen
+* **Zielsetzung:** Verifizieren, dass das ECR Repository mit den korrekten Konfigurationen (Name, Image Scanning, Lifecycle Policy) erstellt wurde und die Terraform Outputs funktionieren.
+* **Testschritte:**
+    1. Nach erfolgreichem `terraform apply` die Terraform Outputs überprüfen:
+       ```bash
+       terraform output ecr_repository_url
+       terraform output ecr_repository_name
+       terraform output ecr_repository_arn
+       ```
+    2. In der AWS Management Console zu ECR navigieren.
+    3. Überprüfen, ob das Repository mit dem Namen `${var.project_name}-app` (z.B. "Nextcloud-app") existiert.
+    4. Repository-Details öffnen und folgende Konfigurationen verifizieren:
+        * Image scanning: "Scan on push" ist aktiviert
+        * Lifecycle policy: Policy ist attached und enthält Regeln für ungetaggte Images (30 Tage) und getaggte Images (max 10)
+        * Tag mutability: "MUTABLE" ist gesetzt
+    5. Tags auf dem Repository überprüfen (sollten `local.common_tags` enthalten).
+    6. Optional: Test-Image Push vorbereiten (Docker login zum Repository testen):
+       ```bash
+       aws ecr get-login-password --region eu-central-1 --profile nextcloud-project | docker login --username AWS --password-stdin $(terraform output -raw ecr_repository_url)
+       ```
+* **Erwartetes Ergebnis:**
+    * Terraform Outputs liefern korrekte ECR Repository URL, Name und ARN.
+    * Repository existiert in AWS Console mit korrektem Namen.
+    * Image scanning ist aktiviert.
+    * Lifecycle policy ist konfiguriert mit den definierten Regeln.
+    * Standard-Tags sind korrekt gesetzt.
+    * Docker login zum Repository ist erfolgreich (optional).
+* **Tatsächliches Ergebnis:** `[Hier dein Ergebnis nach dem Test eintragen]`
+* **Nachweis:** Screenshot der ECR Repository Details aus der AWS Console (optional) in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `ecr_repository_verification.png`.
+
+---
+
+**Testfall: Konfiguration des IAM OIDC Providers und der IRSA-Rolle**
+
+* **Zugehörige User Story:** `Nextcloud#10` - IAM OIDC Provider für EKS konfigurieren
+* **Status:** Abgeschlossen
+* **Zielsetzung:** Verifizieren, dass der OIDC Provider in AWS IAM korrekt erstellt wurde und dass die Beispiel-IAM-Rolle für den EBS CSI Driver die richtige Trust Policy hat.
+* **Testschritte:**
+    1. Nach erfolgreichem `terraform apply` in der AWS Management Console zu **IAM -> Identity providers** navigieren.
+    2. Überprüfen, ob ein Provider mit der URL des EKS-Clusters existiert (z.B. `oidc.eks.eu-central-1.amazonaws.com/id/...`).
+    3. Den Provider auswählen und sicherstellen, dass unter "Audience" der Wert `sts.amazonaws.com` eingetragen ist.
+    4. Zu **IAM -> Roles** navigieren.
+    5. Nach der Rolle `${var.project_name}-ebs-csi-driver-role` suchen und sie auswählen.
+    6. Den Tab **"Trust relationships"** auswählen und auf "Edit trust policy" klicken.
+    7. Überprüfen, ob die JSON-Richtlinie exakt der in Terraform definierten entspricht, insbesondere der `Principal.Federated` ARN und die `Condition`, die auf den Service Account `system:serviceaccount:kube-system:ebs-csi-controller-sa` verweist.
+    8. Im Tab **"Permissions"** überprüfen, ob die `AmazonEBSCSIDriverPolicy` angehängt ist.
+* **Erwartetes Ergebnis:** Alle Komponenten (OIDC Provider, IAM Rolle, Trust Policy, Permissions) sind in der AWS Konsole exakt so konfiguriert, wie in Terraform definiert. Die Trust Policy ist das kritischste Element und muss korrekt sein.
+* **Tatsächliches Ergebnis:** Alle Überprüfungsschritte waren erfolgreich. Der OIDC Provider wurde korrekt erstellt und die Trust Policy der IAM-Rolle wurde exakt wie erwartet in der AWS Konsole verifiziert.
+* **Nachweis:** Screenshot der Trust Policy der IAM-Rolle in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `irsa_trust_policy_verification.png` (Platzhalter).
+
+---
+
+**Testfall: Verifizierung des EBS CSI Drivers und der dynamischen Provisionierung**
+
+* **Zugehörige User Story:** `Nextcloud#11` - AWS EBS CSI Driver im EKS Cluster installieren und konfigurieren
+* **Status:** Abgeschlossen
+* **Zielsetzung:** Sicherstellen, dass der EBS CSI Driver korrekt installiert ist und in der Lage ist, auf eine PVC-Anfrage hin dynamisch ein EBS Volume zu provisionieren.
+* **Testschritte:**
+    1. Nach erfolgreichem `terraform apply` (welches das EKS-Add-on installiert), die Test-Manifeste anwenden:
+       `kubectl apply -f kubernetes-manifests/01-storage-class.yaml`
+       `kubectl apply -f kubernetes-manifests/02-test-pvc.yaml`
+    2. Den Status des PVC überprüfen. Er sollte nach kurzer Zeit von `Pending` auf `Bound` wechseln.
+       `kubectl get pvc ebs-test-claim`
+    3. Überprüfen, ob ein entsprechendes PersistentVolume (PV) erstellt wurde und ebenfalls den Status `Bound` hat.
+       `kubectl get pv`
+    4. In der AWS Management Console zu **EC2 -> Elastic Block Store -> Volumes** navigieren.
+    5. Überprüfen, ob ein neues EBS Volume (Größe 4 GiB, Typ gp3) mit dem Status `in-use` erstellt wurde. Die Tags des Volumes sollten den Namen des PVs enthalten.
+    6. (Aufräumen) Die Test-Ressourcen wieder löschen:
+       `kubectl delete -f kubernetes-manifests/02-test-pvc.yaml`
+       `kubectl delete -f kubernetes-manifests/01-storage-class.yaml`
+       *Nach dem Löschen des PVCs sollte das PV und das zugrunde liegende EBS Volume automatisch gelöscht werden.*
+* **Erwartetes Ergebnis:** Ein PVC wird erstellt und erfolgreich an ein dynamisch provisioniertes EBS Volume gebunden. Der Status von PVC und PV ist `Bound`.
+* **Tatsächliches Ergebnis:** Alle Schritte wurden erfolgreich ausgeführt. Der PVC wechselte innerhalb von Sekunden zu `Bound` und ein entsprechendes 4-GiB-EBS-Volume wurde in der AWS-Konsole verifiziert.
+* **Nachweis:** Screenshot der `kubectl get pvc,pv` Ausgabe in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `ebs_pvc_bound_verification.png` (Platzhalter).
+
+
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
 [PLATZHALTER]
