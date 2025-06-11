@@ -778,6 +778,41 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
 
 ---
 
+#### **Sprint 3: Terraform für RDS/IAM & Manuelles Nextcloud Deployment**
+
+*   **Dauer:** ca. 03. Juni 2025 - 14. Juni 2025
+*   **Zugehörige Epics:** `EPIC-TF-DB-IAM`, `EPIC-NC-DEPLOY`
+*   **Sprint Planning (durchgeführt am 02.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Kontext & Ziel des Plannings:** Nach Abschluss von Sprint 2, in dem die komplette EKS-Infrastruktur inkl. Persistenz-Fähigkeit bereitgestellt wurde, fokussiert sich dieser Sprint darauf, die letzte grosse Infrastruktur-Abhängigkeit – die Datenbank – zu provisionieren und die Funktionsfähigkeit der Gesamtplattform mit einem manuellen Test-Deployment zu validieren.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):**
+        *   Der Product Owner betonte, dass vor der Automatisierung des Deployments (Sprint 4 & 5) absolute Sicherheit bestehen muss, dass die Plattform (VPC, EKS, EBS, RDS) eine stateful Anwendung wie Nextcloud überhaupt tragen kann. Ein manuelles Proof-of-Concept-Deployment ist der schnellste Weg, dies zu validieren und unerwartete Integrationsprobleme frühzeitig aufzudecken.
+        *   Gemeinsam wurde das folgende, präzisierte Sprint-Ziel formuliert:
+            *   *"Eine ausfallsichere AWS RDS PostgreSQL-Instanz ist via Terraform provisioniert und sicher konfiguriert, sodass nur der EKS-Cluster darauf zugreifen kann. Die erfolgreiche Integration der gesamten Infrastruktur wird durch ein manuelles Deployment einer funktionalen, datenbank-angebundenen und persistenten Nextcloud-Instanz nachgewiesen."*
+    *   **Diskussion – Das "Was" (Auswahl der Sprint Backlog Items):**
+        *   Basierend auf dem Ziel wurden die User Stories `#12` (RDS), `#13` (Security Group), `#14` (Manuelles Deployment) und `#15` (Doku) als Kernbestandteile identifiziert.
+        *   Während der Diskussion wurde klar, dass ein kritischer Schritt fehlt: Wie gelangen die Datenbank-Credentials sicher in den Cluster? Das Dev-Team schlug vor, hierfür eine neue User Story zu erstellen (`#16`), die das manuelle Erstellen eines Kubernetes Secrets für die Credentials abdeckt. Dies wurde vom PO akzeptiert und dem Sprint Backlog hinzugefügt.
+        *   Es wurde ebenfalls beschlossen, das RDS-Master-Passwort nicht im Terraform-Code zu hardcoden, sondern es im AWS Secrets Manager zu speichern und von Terraform nur zu referenzieren. Diese Anforderung wird Teil von User Story `#12`.
+    *   **Diskussion – Das "Wie" (Grobe Planung der Umsetzung):**
+        1.  **AWS-Infrastruktur zuerst:** Zuerst wird das RDS-Passwort im AWS Secrets Manager angelegt. Danach werden die Terraform-Konfigurationen für RDS (`#12`) und die Security Group (`#13`) erstellt und angewendet.
+        2.  **Kubernetes-Vorbereitung:** Sobald die Datenbank läuft, wird das Kubernetes-Secret mit den Credentials manuell im Cluster erstellt (`#16`).
+        3.  **Proof-of-Concept:** Anschliessend wird das manuelle Deployment von Nextcloud mit einfachen YAML-Manifesten (Deployment, Service, PVC) durchgeführt (`#14`).
+        4.  **Dokumentation:** Die für das manuelle Deployment notwendigen Schritte und Befehle werden parallel dokumentiert (`#15`).
+*   **Sprint-Ziel (committet für Sprint 3):**
+    *   "Eine ausfallsichere AWS RDS PostgreSQL-Instanz ist via Terraform provisioniert und sicher konfiguriert, sodass nur der EKS-Cluster darauf zugreifen kann. Die erfolgreiche Integration der gesamten Infrastruktur wird durch ein manuelles Deployment einer funktionalen, datenbank-angebundenen und persistenten Nextcloud-Instanz nachgewiesen."
+*   **Sprint Backlog (committete User Stories für Sprint 3):**
+    *   `Nextcloud#12`: RDS PostgreSQL Instanz via Terraform provisionieren & Master-Passwort via Secrets Manager verwalten.
+    *   `Nextcloud#13`: RDS Security Group konfigurieren, um Zugriff nur vom EKS-Cluster zu erlauben.
+    *   `Nextcloud#14`: Nextcloud manuell auf EKS deployen (als Proof-of-Concept).
+    *   `Nextcloud#15`: Die Schritte des manuellen Deployments im `README.md` dokumentieren.
+    *   `Nextcloud#39`: **(NEU)** Manuell ein Kubernetes Secret für die RDS-Datenbank-Credentials erstellen.
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
+*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+
+---
+
 #### **Sprint 4: Nextcloud Helm Chart Entwicklung**
 
 * **Dauer:** ca. 15. Juni 2025 - 19. Juni 2025 *(Beispiel, an dein Gantt anpassen, endet vor Besprechung 3 am 20.06.)*
