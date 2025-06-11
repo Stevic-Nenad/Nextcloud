@@ -701,28 +701,9 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
       z.B. `eks.tf`, `ecr.tf`, `iam_oidc.tf`) erweitert.
     * Dokumentation (dieses README, insbesondere Abschnitte 4.1.3 und ggf. relevante Teile von 3.3) wird parallel zur
       Umsetzung jeder User Story aktualisiert.
-* **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-* **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem EKS/ECR und EBS
-  CSI für Besprechung 2)*
-* **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
-
----
-
-#### **Sprint 3: Terraform für RDS/IAM & Manuelles Nextcloud Deployment**
-
-* **Dauer:** ca. 03. Juni 2025 - 14. Juni 2025 *(Beispiel, an dein Gantt anpassen, zwischen Besprechung 2 & vor Sprint
-  4)*
-* **Zugehörige Epics:** `EPIC-TF-DB-IAM`, `EPIC-NC-DEPLOY`
-* **Vorläufiges Sprint-Ziel:** Eine AWS RDS Datenbank-Instanz und die notwendigen IAM-Rollen für den Nextcloud-Zugriff
-  mittels Terraform provisionieren. Anschliessend Nextcloud manuell auf dem EKS-Cluster bereitstellen, um die
-  Datenbankanbindung und Datenpersistenz zu validieren.
-* **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    * `Nextcloud#12`: RDS PostgreSQL Instanz via Terraform provisionieren
-    * `Nextcloud#13`: RDS Security Group konfigurieren
-    * `Nextcloud#14`: Nextcloud manuell auf EKS deployen (PoC)
-    * `Nextcloud#15`: Manuelle Deployment-Schritte dokumentieren
-* **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+* **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    * Die korrekte JSON-Syntax für die ECR Lifecycle Policy (`Nextcloud#9`) erforderte eine kurze, aber fokussierte Recherche in der AWS/Terraform-Dokumentation, war aber dank der Beispiele schnell umsetzbar. Ansonsten keine Blocker.
+    * Die `sts:AssumeRoleWithWebIdentity`-Aktion und die genaue Struktur der Trust Policy für IRSA (`Nextcloud#10`) waren anfangs komplex. Das Verständnis der `Condition`-Klausel, die die Rolle an einen spezifischen Kubernetes Service Account bindet, war der Schlüssel zum Erfolg.
 * **Erreichtes Inkrement / Ergebnisse:**
     * **EKS Cluster und Node Groups provisioniert (User Story #8 ✓):**
         * Die EKS Control Plane wurde mit der Kubernetes-Version `1.29` (konfigurierbar via Terraform-Variable
@@ -731,8 +712,7 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
           `AmazonEKSClusterPolicy` wurde erstellt und korrekt konfiguriert.
         * Mindestens eine EKS Managed Node Group (`${var.project_name}-main-nodes`) wurde erstellt.
             * Instanztyp: `t3.medium` (konfigurierbar via `var.eks_node_instance_types`).
-            * Skalierungsparameter: Min: 1, Max: 3, Desired: 2 (konfigurierbar via `var.eks_node_min_count`,
-              `var.eks_node_max_count`, `var.eks_node_desired_count`).
+            * Skalierungsparameter: Min: 2, Max: 2, Desired: 2 für grundlegende HA.
         * Die Worker Nodes wurden erfolgreich in den privaten Subnetzen (`aws_subnet.private[*].id`) der in Sprint 1
           erstellten VPC platziert.
         * Die notwendige IAM Rolle (`${var.project_name}-eks-node-role`) für die Node Groups (inkl. der Policies:
@@ -748,9 +728,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         * Die Dokumentation der EKS-Architektur wurde in Abschnitt [3.3.4](#334-aws-eks-architektur-detail) (neu)
           und [4.1.3](#413-provisionierung-des-eks-clusters-und-der-ecr) aktualisiert.
         * Alle Akzeptanzkriterien für User Story #8 sind erfüllt.
-    * *(Weitere Ergebnisse für andere User Stories in Sprint 2 werden hier ergänzt, z.B. für #9, #10, #11)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
-* **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+    * **Privates ECR Repository via Terraform erstellt (User Story #9 ✓):**
+        * Ein privates AWS ECR Repository mit dem konfigurierbaren Namen `nextcloud-app` wurde erfolgreich mittels Terraform provisioniert (`aws_ecr_repository`).
+        * Die Funktion "Image-Scanning bei Push" wurde aktiviert, um Images automatisch auf bekannte Sicherheitslücken zu prüfen.
+        * Eine Lifecycle Policy (`aws_ecr_lifecycle_policy`) wurde konfiguriert, die ungetaggte Images nach 30 Tagen automatisch löscht, um die Kostenkontrolle zu gewährleisten.
+        * Der URI des Repositories (`repository_url`) wird nun als Terraform-Output ausgegeben, um ihn in nachfolgenden CI/CD-Schritten einfach referenzieren zu können.
+        * `terraform apply` wurde erfolgreich ausgeführt und das Repository in der AWS Konsole verifiziert.
+        * Alle DoD-Punkte für diese User Story sind erfüllt.
 
 ---
 
