@@ -749,6 +749,32 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         * Alle DoD-Punkte für diese User Story sind erfüllt.
 
 *(Sprint 2 ist damit hinsichtlich der technischen Umsetzung vollständig abgeschlossen.)*
+* **Sprint Review (durchgeführt am 01.06.2025 – simuliert):**
+    * **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team). Die Stakeholder (Fachexperten) werden gedanklich als Publikum einbezogen.
+    * **Sprint-Ziel von Sprint 2 (rekapituliert):** "Ein funktionsfähiger AWS EKS Kubernetes-Cluster mit konfigurierten Node Groups und einem IAM OIDC Provider ist mittels Terraform automatisiert provisioniert. Zusätzlich ist ein AWS ECR Repository für Docker-Images via Terraform erstellt und der AWS EBS CSI Driver im EKS Cluster für persistente Volumes installiert und konfiguriert."
+    * **Präsentation des Inkrements (Demo-Highlights):**
+        * **EKS Cluster:** Es wurde demonstriert, wie `terraform apply` den vollständigen EKS-Cluster mit zwei Worker Nodes in den privaten Subnetzen erstellt. Der erfolgreiche Zugriff via `kubectl get nodes` wurde live gezeigt.
+        * **ECR Repository:** Das via Terraform erstellte private ECR-Repository wurde in der AWS-Konsole präsentiert, inklusive der aktivierten Konfiguration für "Scan on push" und der Lifecycle Policy.
+        * **IRSA & EBS CSI Driver:** Die Kernfunktionalität wurde durch einen Live-Test nachgewiesen:
+            1. Anwenden eines Test-`PersistentVolumeClaim` (PVC) via `kubectl apply`.
+            2. Beobachtung des PVC-Status, der in Echtzeit auf `Bound` wechselte (`kubectl get pvc`).
+            3. Verifizierung des dynamisch erstellten EBS-Volumes im AWS EC2 Dashboard.
+        * Dieses Ergebnis bestätigt, dass der EKS-Cluster, der OIDC Provider, die IRSA-Rolle und der EBS CSI Driver perfekt zusammenspielen.
+    * **Feedback & Diskussion (simuliert):** Das Sprint-Ziel wurde vollumfänglich erreicht. Alle User Stories (`#8`, `#9`, `#10`, `#11`) wurden erfolgreich abgeschlossen. Das Inkrement stellt eine robuste und sichere Basis für die Anwendungs-Deployments in den nächsten Sprints dar. Die Wahl des EKS Add-ons für den CSI-Treiber wurde als kluge, stabile Entscheidung gewürdigt.
+    * **Product Backlog:** Keine unmittelbaren Änderungen am Backlog erforderlich. Die Priorisierung für Sprint 3 (RDS-Datenbank) bleibt bestehen und ist der logische nächste Schritt.
+* **Sprint Retrospektive (durchgeführt am 01.06.2025 – simuliert):**
+    * **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    * **Diskussion – Was lief gut in Sprint 2?**
+        * **Logische Aufteilung:** Die Aufteilung der komplexen EKS-Einrichtung in separate, fokussierte User Stories (#8, #10, #11) hat sich als äusserst effektiv erwiesen. Jedes Teilproblem konnte isoliert gelöst und verifiziert werden.
+        * **Proaktive Problemlösung:** Der `no such host`-Fehler bei `kubectl` wurde schnell als typisches `kubeconfig`-Problem identifiziert und souverän gelöst.
+        * **Stabile Basis:** Das Inkrement aus Sprint 1 (VPC) war eine fehlerfreie und solide Grundlage, auf der reibungslos aufgebaut werden konnte.
+        * **Dokumentationsdisziplin:** Die proaktive Dokumentation von Architekturentscheidungen (EKS Add-on vs. Helm) im `README.md` wurde als wertvoll für die Nachvollziehbarkeit erachtet.
+    * **Diskussion – Was könnte verbessert werden?**
+        * **Komplexität von IRSA:** Die Einarbeitung in die genaue Funktionsweise von IRSA und die Syntax der Trust Policy war zeitaufwändiger als erwartet. Ein initialer "Spike" (kurzes Forschungs-Ticket) hätte hier den Aufwand vielleicht genauer vorhersagbar gemacht.
+        * **Terraform-Plan-Dauer:** Mit zunehmender Anzahl an Ressourcen dauert `terraform plan` und `apply` länger. Dies ist normal, muss aber in der Zeitplanung für zukünftige Sprints berücksichtigt werden.
+    * **Abgeleitete Action Items für Sprint 3:**
+        1. **Komplexitätsbewertung beibehalten:** Bei neuen, unbekannten AWS-Diensten (wie RDS in Sprint 3) bewusst eine kurze Recherchephase einplanen, bevor die Implementierung beginnt, um die Aufwandsschätzung zu verbessern.
+        2. **Modulare Terraform-Struktur im Auge behalten:** Auch wenn noch keine eigenen Module erstellt werden, wird weiterhin auf saubere, in thematische Dateien aufgeteilte Terraform-Konfigurationen geachtet, um die Übersichtlichkeit zu wahren.
 
 ---
 
