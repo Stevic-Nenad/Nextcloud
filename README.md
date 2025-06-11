@@ -742,6 +742,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         * Die Trust Policy dieser Rolle wurde so konfiguriert, dass sie nur vom Kubernetes Service Account `ebs-csi-controller-sa` im Namespace `kube-system` übernommen werden kann. Dies legt den Grundstein für sichere, anmeldeinformationsfreie AWS-API-Aufrufe aus Pods (IRSA).
         * Die AWS-verwaltete `AmazonEBSCSIDriverPolicy` wurde an die Rolle angehängt.
         * `terraform apply` wurde erfolgreich ausgeführt und die Konfiguration in der AWS Konsole verifiziert.
+    * **AWS EBS CSI Driver installiert und konfiguriert (User Story #11 ✓):**
+        * Der AWS EBS CSI Driver wurde als EKS-verwaltetes Add-on (`aws_eks_addon`) via Terraform installiert. Diese Methode wurde wegen ihrer einfachen Verwaltung und direkten Integration in EKS und Terraform gewählt.
+        * Das Add-on wurde so konfiguriert, dass es die in User Story #10 erstellte IAM-Rolle (`${var.project_name}-ebs-csi-driver-role`) via IRSA verwendet. Dies stellt sicher, dass der Treiber die nötigen Berechtigungen hat, um EBS Volumes zu verwalten.
+        * Die erfolgreiche Installation wurde durch die Erstellung einer `StorageClass` und eines Test-`PersistentVolumeClaim` (PVC) verifiziert. Der PVC wurde erfolgreich an ein dynamisch provisioniertes `PersistentVolume` (PV) und ein zugrunde liegendes AWS EBS Volume gebunden.
+        * Alle DoD-Punkte für diese User Story sind erfüllt.
+
+*(Sprint 2 ist damit hinsichtlich der technischen Umsetzung vollständig abgeschlossen.)*
 
 ---
 
