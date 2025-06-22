@@ -78,3 +78,28 @@ output "ebs_csi_driver_role_arn" {
   description = "The ARN of the IAM role for the EBS CSI Driver Service Account."
   value       = aws_iam_role.ebs_csi_driver_role.arn
 }
+
+output "rds_instance_endpoint" {
+  description = "The connection endpoint for the RDS instance."
+  value       = aws_db_instance.nextcloud.endpoint
+}
+
+output "rds_instance_port" {
+  description = "The port for the RDS instance."
+  value       = aws_db_instance.nextcloud.port
+}
+
+output "rds_db_name" {
+  description = "The database name."
+  value       = aws_db_instance.nextcloud.db_name
+}
+
+output "rds_master_username" {
+  description = "The master username for the database."
+  value       = aws_db_instance.nextcloud.username
+}
+
+output "rds_security_group_id" {
+  description = "The ID of the RDS security group."
+  value       = aws_security_group.rds.id
+}

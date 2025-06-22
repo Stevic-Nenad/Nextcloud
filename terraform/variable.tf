@@ -59,3 +59,39 @@ variable "ecr_repository_name" {
   type        = string
   default     = "nextcloud-app"
 }
+
+variable "rds_pg_version" {
+  description = "PostgreSQL engine version for RDS."
+  type        = string
+  default     = "17.2"
+}
+
+variable "rds_instance_class" {
+  description = "The instance class for the RDS instance."
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "rds_allocated_storage" {
+  description = "The initial allocated storage for the RDS instance (in GB)."
+  type        = number
+  default     = 20
+}
+
+variable "rds_master_username" {
+  description = "The master username for the RDS database."
+  type        = string
+  default     = "nextcloudadmin"
+}
+
+variable "rds_db_name" {
+  description = "The name of the database to create within the RDS instance."
+  type        = string
+  default     = "nextclouddb"
+}
+
+variable "rds_multi_az_enabled" {
+  description = "Specifies if the RDS instance is multi-AZ."
+  type        = bool
+  default     = true
+}
