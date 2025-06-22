@@ -806,30 +806,76 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#14`: Nextcloud manuell auf EKS deployen (als Proof-of-Concept).
     *   `Nextcloud#15`: Die Schritte des manuellen Deployments im `README.md` dokumentieren.
     *   `Nextcloud#39`: **(NEU)** Manuell ein Kubernetes Secret für die RDS-Datenbank-Credentials erstellen.
-*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
-*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    *   **Impediment 1 (Blocker):** Nach dem initialen manuellen Deployment blieb der `PersistentVolumeClaim` (PVC) für Nextcloud im Status `Pending`. Die `kubectl describe pod` Ausgabe zeigte keine Events, was auf ein Problem vor dem Scheduling hindeutete.
+        *   **Analyse:** Die Logs des `ebs-csi-node` Pods zeigten einen Timeout-Fehler bei der Abfrage des EC2 Instance Metadata Service (IMDS). Dies verhinderte, dass der CSI-Treiber die notwendigen Topologie-Labels auf den Worker-Nodes setzen konnte, wodurch der Scheduler die Nodes für die Volume-Provisionierung ignorierte.
+        *   **Lösung 1 (Versuch):** Zuerst wurde eine fehlende IAM-Berechtigung vermutet. Dies stellte sich als falsch heraus.
+        *   **Lösung 2 (Erfolgreich):** Die Recherche ergab, dass die Standard-Hop-Limit von `1` für den IMDS in containerisierten Umgebungen nicht ausreicht. Die Lösung war die Erstellung einer dedizierten `aws_launch_template` für die EKS Node Group, in der die `http_put_response_hop_limit` auf `2` gesetzt wurde.
+    *   **Impediment 2 (Blocker):** Nachdem das IMDS-Problem gelöst war, schlug die Volume-Provisionierung mit einem `AccessDenied`-Fehler fehl.
+        *   **Analyse:** Die PVC-Events zeigten klar, dass der CSI-Treiber nicht berechtigt war, die `sts:AssumeRoleWithWebIdentity`-Aktion auszuführen. Dies deutete auf eine fehlerhafte IAM Trust Policy für die IRSA-Rolle hin.
+        *   **Lösung:** Die Trust Policy der `ebs_csi_driver_role` wurde überarbeitet und robuster gestaltet, indem sie explizit das `audience` (`aud`) und `subject` (`sub`) des OIDC-Tokens validiert.
+    *   **Erkenntnis:** Die Fehlersuche in einem verteilten System erfordert eine schichtweise Analyse. Ein `Pending`-Status kann von der Anwendung, über Kubernetes-Komponenten, bis hin zu tiefen Cloud-Infrastruktur-Einstellungen (IAM, EC2) verursacht werden. Die `describe`- und `logs`-Befehle sind hierbei die wichtigsten Werkzeuge.
+*   **Erreichtes Inkrement / Ergebnisse:**
+    *   **Korrektur & Härtung der EKS-Worker-Node-Konfiguration (Ungeplant, aber notwendig):**
+        *   Eine dedizierte `aws_launch_template` wurde erstellt und mit der EKS Node Group verknüpft. Diese setzt die IMDS Hop-Limit auf `2`, um Konnektivitätsprobleme von Pods zum EC2 Metadatendienst zu beheben.
+        *   Die IAM Trust Policy für die EBS CSI Driver Rolle (`ebs_csi_driver_role`) wurde überarbeitet, um die Sicherheit und Zuverlässigkeit der IRSA-Konfiguration zu erhöhen.
+    *   **RDS PostgreSQL-Instanz und zugehörige Ressourcen via Terraform provisioniert (User Story #12 ✓):**
+        *   Die RDS-Instanz (`PostgreSQL 16.2`, `db.t3.micro`) wurde erfolgreich in den privaten Subnetzen provisioniert.
+        *   Das Master-Passwort wird sicher aus dem AWS Secrets Manager ausgelesen.
+    *   **RDS Security Group konfiguriert (User Story #13 ✓):**
+        *   Eine dedizierte Security Group für RDS wurde erstellt, die den Zugriff nur von der EKS-Cluster-Security-Group auf Port `5432` erlaubt.
+    *   **Manuelles Kubernetes Secret für DB-Credentials erstellt (User Story #39 ✓):**
+        *   Ein Kubernetes-Secret (`nextcloud-db-secret`) wurde erfolgreich mit den korrekten, base64-codierten Werten erstellt.
+    *   **Nextcloud manuell auf EKS deployt als Proof-of-Concept (User Story #14 ✓):**
+        *   Eine funktionale Nextcloud-Instanz wurde mittels manueller Manifeste (Deployment, Service, PVC) auf dem EKS-Cluster bereitgestellt.
+        *   Die Instanz ist über einen AWS Load Balancer extern erreichbar. Die Datenbankverbindung und die Datenpersistenz wurden durch einen Pod-Neustart-Test erfolgreich validiert.
+    *   **Spezifikation des manuellen Deployments dokumentiert (User Story #15 ✓):**
+        *   Eine detaillierte Spezifikation, die alle Konfigurationen, Manifeste und Befehle des manuellen Deployments beschreibt, wurde als dedizierter Abschnitt in diesem `README.md` (Kapitel 4.1.8) erstellt.
+*   **Sprint Review (durchgeführt am 14.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team), Stakeholder (repräsentiert durch die Fachexperten).
+    *   **Präsentation des Sprint-Ziels & Inkrements:** Das committete Sprint-Ziel – die Bereitstellung einer via Terraform provisionierten RDS-Instanz und der Nachweis der Plattform-Funktionalität durch ein manuelles, persistentes Nextcloud-Deployment – wurde vollständig erreicht.
+    *   **Live-Demo (Demo-Highlight):** Als Höhepunkt des Reviews wurde die Lauffähigkeit der Gesamtlösung live demonstriert:
+        1.  Zuerst wurde der erfolgreiche `terraform apply`-Lauf gezeigt, der die RDS-Instanz und alle zugehörigen Sicherheitskonfigurationen erstellt hat.
+        2.  Anschliessend wurde die Nextcloud-Instanz, die zuvor mit manuellen `kubectl apply`-Befehlen bereitgestellt wurde, über ihre öffentliche Load-Balancer-URL im Browser aufgerufen.
+        3.  Es wurde ein erfolgreicher Login durchgeführt und eine Test-Datei hochgeladen.
+        4.  **Der entscheidende Persistenz-Test:** Der laufende Nextcloud-Pod wurde live mit `kubectl delete pod` terminiert. Die Stakeholder konnten beobachten, wie Kubernetes den Pod automatisch neu startete. Nach dem erneuten Login war die zuvor hochgeladene Test-Datei noch vorhanden, was die korrekte Funktion der Datenbankanbindung und des persistenten EBS-Speichers eindrucksvoll bestätigte.
+    *   **Diskussion & Feedback (simuliert):** Die Stakeholder zeigten sich beeindruckt von der Stabilität und Resilienz der demonstrierten Lösung. Besonders positiv wurde hervorgehoben, dass die gesamte zugrundeliegende Infrastruktur nun als validiert gilt, was ein grosses Risiko für die nachfolgenden Sprints eliminiert. Die aufgetretenen technischen Herausforderungen (siehe "Impediments") und deren systematische Lösung wurden als wertvolle Lernerfahrung und Zeichen technischer Tiefe gewertet. Es wurden keine Änderungen am Product Backlog für notwendig erachtet.
+    *   **Fazit:** Der Sprint war ein voller Erfolg. Das Inkrement ist robust, die Kernrisiken sind mitigiert und das Projekt ist perfekt positioniert, um nun in die Automatisierungsphase mit Helm überzugehen.
+*   **Sprint Retrospektive (durchgeführt am 14.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Ziel der Retrospektive:** Den komplexen Sprint 3 reflektieren, um den methodischen Ansatz zur Problemlösung zu analysieren und den Prozess für zukünftige Sprints weiter zu schärfen.
+    *   **Diskussion – Was lief aussergewöhnlich gut?**
+        *   **Systematische Fehlersuche:** Trotz unerwarteter und tiefgreifender technischer Probleme wurde ein ruhiger, schichtweiser Debugging-Prozess verfolgt (Pod-Status -> PVC-Events -> CSI-Logs -> IAM-Policies -> EC2-Metadaten). Dieser methodische Ansatz war der Schlüssel zum Erfolg.
+        *   **Resilienz & Lernbereitschaft:** Die Bereitschaft, ursprüngliche Annahmen zu verwerfen und die Infrastruktur von Grund auf neu zu provisionieren, um einen sauberen Zustand zu garantieren, war entscheidend.
+        *   **Inkrementeller Wert:** Das Sprint-Ziel, ein Proof-of-Concept zu liefern, hat sich als goldrichtig erwiesen. Es hat kritische Infrastruktur-Fehler aufgedeckt, die in einer vollautomatisierten Pipeline nur sehr schwer zu debuggen gewesen wären.
+    *   **Diskussion – Was haben wir gelernt (Verbesserungspotenzial)?**
+        *   **Komplexität von Cloud-Integrationen:** Dieser Sprint hat eindrücklich gezeigt, dass die Integration von Managed Services (EKS, EC2, IAM) subtile Abhängigkeiten aufweist (z.B. IMDS Hop Limit), die in der offiziellen "Getting Started"-Dokumentation oft nicht im Vordergrund stehen. Eine tiefere Recherche in Best-Practice-Guides und bekannten GitHub-Issues ist unerlässlich.
+        *   **Dokumentationsdisziplin:** Das Festhalten der Impediments und deren Lösungen direkt nach Auftreten ist essenziell. Es bildet die Grundlage für eine starke Projektdokumentation und die Reflexion.
+    *   **Abgeleitete Action Item für Sprint 4:**
+        1.  **Spezifikation als Basis nutzen:** Die Erkenntnisse des manuellen Deployments, die nun detailliert dokumentiert sind, werden als feste Blaupause für die Entwicklung des Helm Charts verwendet. Es wird nicht "from scratch" begonnen, sondern die validierte Konfiguration systematisch in Helm-Templates überführt. Dies minimiert das Risiko, in Sprint 4 erneut auf dieselben Probleme zu stossen.
 
 ---
 
 #### **Sprint 4: Nextcloud Helm Chart Entwicklung**
 
-* **Dauer:** ca. 15. Juni 2025 - 19. Juni 2025 *(Beispiel, an dein Gantt anpassen, endet vor Besprechung 3 am 20.06.)*
-* **Zugehöriges Epic:** `EPIC-HELM`
-* **Vorläufiges Sprint-Ziel:** Entwicklung eines grundlegend funktionalen Helm Charts für die Nextcloud-Anwendung, das
-  die Konfiguration der wichtigsten Parameter (Image, Replicas, Service Typ, DB-Verbindung, Persistenz) über
-  `values.yaml` ermöglicht.
-* **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    * `Nextcloud#16`: Helm Chart Grundgerüst erstellen
-    * `Nextcloud#17`: Secrets & ConfigMaps im Helm Chart templatzieren
-    * `Nextcloud#18`: NOTES.txt für Post-Installationshinweise erstellen
-    * `Nextcloud#19`: Helm Tests für Nextcloud Health Check implementieren
-* **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-* **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt, Fokus auf funktionierendem Helm Chart für
-  Besprechung 3)*
-* **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+*   **Dauer:** 15. Juni 2025 - 20. Juni 2025
+*   **Zugehöriges Epic:** `EPIC-HELM`
+*   **Sprint Planning (durchgeführt am 14.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Kontext & Ziel des Plannings:** Nach dem erfolgreichen Proof-of-Concept in Sprint 3 ist die Funktionsfähigkeit der Infrastruktur validiert. Das Ziel dieses Sprints ist es, den manuellen, fehleranfälligen Deployment-Prozess durch ein standardisiertes, wiederverwendbares und konfigurierbares Helm Chart zu ersetzen. Dies ist der erste Schritt zur Automatisierung des Anwendungs-Deployments.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):** Der Product Owner betonte, dass manuelle `kubectl apply`-Befehle nicht skalierbar, versionierbar oder für eine CI/CD-Pipeline geeignet sind. Ein Helm Chart ist der Industriestandard, um Kubernetes-Anwendungen zu paketieren und deren Lebenszyklus zu verwalten. Es kapselt die Komplexität und ermöglicht einfache, wiederholbare Installationen und Upgrades.
+    *   **Gemeinsam formuliertes Sprint-Ziel:**
+        *   *"Ein eigenständiges und funktionales Helm Chart für Nextcloud ist entwickelt, das die manuelle Bereitstellung vollständig ersetzt. Das Chart ist über eine `values.yaml`-Datei konfigurierbar, löst das `localhost`-Redirect-Problem durch eine dedizierte ConfigMap und enthält einen einfachen Helm-Test zur Überprüfung der Erreichbarkeit des Deployments. Die Benutzerfreundlichkeit wird durch eine informative `NOTES.txt`-Datei nach der Installation sichergestellt."*
+*   **Sprint Backlog (Committete User Stories für Sprint 4):**
+    *   `Nextcloud#16`: **Helm Chart Grundgerüst erstellen:** Ein neues Helm Chart mit `helm create nextcloud-chart` initialisieren und die grundlegende `Chart.yaml` mit Metadaten füllen. Die unnötigen Standard-Templates werden bereinigt, um eine saubere Basis zu schaffen.
+    *   `Nextcloud#40`: **Manuelle Manifeste in Helm-Templates überführen:** Das funktionierende Deployment-, Service- und PVC-YAML aus Sprint 3 in den `templates/`-Ordner des Charts überführen und mit Helm-Variablen (`{{ .Values.xyz }}`) parametrisieren (z.B. für Image-Tag, Replica-Anzahl, Storage-Grösse).
+    *   `Nextcloud#17`: **Secrets & ConfigMap für dynamische Konfiguration templatzieren:** Ein Template für das Datenbank-Secret erstellen, das seine Werte aus der `values.yaml` bezieht. Zusätzlich ein ConfigMap-Template erstellen, das `trusted_domains` und `overwrite.cli.url` für Nextcloud konfiguriert, um das `localhost`-Redirect-Problem zu lösen.
+    *   `Nextcloud#19`: **Einfachen Helm-Test für Deployment-Verfügbarkeit implementieren:** Ein `templates/tests/test-connection.yaml` erstellen. Dieses Template definiert einen Test-Pod, der mittels `wget` oder `curl` versucht, den Nextcloud-Service zu erreichen. Ein erfolgreicher Test verifiziert die grundlegende Netzwerk-Konnektivität und das Service-Routing.
+    *   `Nextcloud#18`: **NOTES.txt für Post-Installationshinweise erstellen:** Eine nützliche `NOTES.txt`-Datei schreiben, die dem Benutzer nach einem `helm install` dynamisch generierte Informationen anzeigt, wie z.B. den Befehl zum Abrufen der externen IP des Load Balancers.
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
+*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
 ---
 
@@ -1056,6 +1102,8 @@ Nodes sicher innerhalb der in [Abschnitt 3.3.2](#332-aws-netzwerkarchitektur-vpc
   Node Groups in den **privaten Subnetzen** der VPC provisioniert. Dies schützt die Nodes vor direktem Zugriff aus dem
   Internet. Die Nodes benötigen ausgehenden Internetzugriff (über die NAT Gateways in den öffentlichen Subnetzen) für
   das Herunterladen von Images, Updates und die Kommunikation mit AWS-Diensten.
+*   **Launch Template für Worker Nodes:** Eine Standard-EKS-Konfiguration führt zu einem subtilen, aber kritischen Problem: Pods auf den Worker Nodes können den EC2 Instance Metadata Service (IMDS) nicht erreichen. Dies ist erforderlich, damit Systemkomponenten wie der EBS CSI Driver ihre eigene Availability Zone ermitteln können. Der Grund ist, dass der Netzwerk-Hop vom Pod zum Node die standardmässige "Hop Limit" des IMDS von `1` überschreitet.
+    *   **Lösung:** Um dieses Problem zu beheben, wird eine dedizierte **AWS Launch Template** für die Worker Nodes erstellt. In dieser Vorlage wird die "Metadata response hop limit" explizit auf `2` gesetzt. Die EKS Managed Node Group wird dann so konfiguriert, dass sie diese Launch Template anstelle der Standardeinstellungen verwendet. Dies ist die von AWS empfohlene Best Practice, um die Kompatibilität zwischen der EKS-Netzwerk-Abstraktion und dem zugrundeliegenden EC2-Metadatendienst sicherzustellen.
 * **IAM-Rollen:**
     * **EKS Cluster Role:** Ermächtigt den EKS-Service, AWS-Ressourcen im Namen des Clusters zu verwalten (z.B. Load
       Balancer, ENIs).
@@ -1465,7 +1513,26 @@ resource "aws_eks_cluster" "main" {
 
 **3. EKS Managed Node Group (`eks_nodegroup.tf`)**
 
-Die Worker Nodes werden in einer `aws_eks_node_group` in den privaten Subnetzen platziert.
+Die Worker Nodes werden in einer `aws_eks_node_group` in den privaten Subnetzen platziert. Um kritische Konnektivitätsprobleme mit dem EC2 Instance Metadata Service (IMDS) zu lösen, wird die Node Group nicht mit Standardeinstellungen, sondern mit einer dedizierten **AWS Launch Template** provisioniert.
+
+```terraform
+// src/terraform/launch_template.tf
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix = "${lower(var.project_name)}-lt-"
+  description = "Launch template for EKS worker nodes with custom metadata options"
+
+  metadata_options {
+    http_tokens                 = "required" // Enforce IMDSv2
+    http_put_response_hop_limit = 2          // Increase hop limit for pods
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+Diese Launch Template wird dann in der Node-Group-Konfiguration referenziert, um sicherzustellen, dass alle erstellten EC2-Instanzen mit der korrekten IMDS-Hop-Limit von `2` konfiguriert sind.
 
 ```terraform
 // src/terraform/eks_nodegroup.tf
@@ -1473,10 +1540,15 @@ resource "aws_eks_node_group" "main_nodes" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project_name}-main-nodes"
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids = aws_subnet.private[*].id // Worker Nodes in privaten Subnetzen
+  subnet_ids      = aws_subnet.private[*].id // Worker Nodes in privaten Subnetzen
 
   instance_types = var.eks_node_instance_types
-  capacity_type  = "ON_DEMAND"
+
+  // Verknüpfung mit der dedizierten Launch Template
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
 
   scaling_config {
     desired_size = var.eks_node_desired_count
@@ -1484,20 +1556,7 @@ resource "aws_eks_node_group" "main_nodes" {
     min_size     = var.eks_node_min_count
   }
 
-  update_config {
-    max_unavailable_percentage = 50
-  }
-
-  tags = merge(
-    local.common_tags,
-    { Name = "${var.project_name}-main-node-group" }
-  )
-
-  depends_on = [
-    aws_eks_cluster.main,
-    aws_iam_role_policy_attachment.eks_node_AmazonEKSWorkerNodePolicy,
-    # ... andere Node Policy Attachments ...
-  ]
+  # ... (rest of the resource) ...
 }
 ```
 
@@ -1640,6 +1699,48 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
 ```
 Diese Konfiguration ermöglicht es, einem Kubernetes Service Account (`ebs-csi-controller-sa`) die Annotation `eks.amazonaws.com/role-arn` mit dem ARN der `ebs_csi_driver_role` hinzuzufügen. Der Pod, der diesen Service Account verwendet, erhält dann automatisch temporäre AWS-Anmeldeinformationen mit den Berechtigungen der `AmazonEBSCSIDriverPolicy`.
 
+#### 4.1.4a Korrektur der IRSA Trust Policy
+
+Während der Implementierung des manuellen Deployments (Sprint 3) trat ein `AccessDenied`-Fehler bei der dynamischen Provisionierung von EBS-Volumes auf. Die Events des `PersistentVolumeClaim` zeigten, dass der EBS CSI Driver nicht berechtigt war, die ihm zugewiesene IAM-Rolle via `sts:AssumeRoleWithWebIdentity` zu übernehmen.
+
+*   **Problem:** Die ursprüngliche Trust Policy der IAM-Rolle für den CSI-Treiber war zu restriktiv oder enthielt eine nicht exakt passende Bedingung, was von AWS STS abgelehnt wurde.
+*   **Lösung:** Die Trust Policy wurde robuster gestaltet, indem sie nicht nur den `subject` (`sub`) des OIDC-Tokens, sondern auch dessen `audience` (`aud`) validiert. Zudem wurde die Referenz auf den OIDC-Provider-Endpunkt präzisiert, um mögliche Fehlerquellen zu eliminieren.
+
+Die korrigierte und nun funktionale Trust Policy in `iam_irsa.tf` sieht wie folgt aus:
+
+```terraform
+// src/terraform/iam_irsa.tf - Korrigierte Trust Policy
+resource "aws_iam_role" "ebs_csi_driver_role" {
+  name = "${var.project_name}-ebs-csi-driver-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc_provider.arn
+        },
+        Condition = {
+          # Gate 1: Check the 'audience' of the token. It must be 'sts.amazonaws.com'.
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks_oidc_provider.url, "https://", "")}:aud" = "sts.amazonaws.com"
+          },
+          # Gate 2: Check the 'subject' of the token. It must match the specific Kubernetes Service Account.
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks_oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          }
+        }
+      }
+    ]
+  })
+  # ... (restliche Konfiguration) ...
+}
+```
+
+Diese Anpassung löste das Berechtigungsproblem und ermöglichte dem EBS CSI Driver die erfolgreiche Erstellung von Volumes.
+
 #### 4.1.5 Persistent Storage (EBS CSI Driver)
 
 Für stateful Applikationen wie Nextcloud ist persistenter Speicher unerlässlich. Der **AWS EBS CSI Driver** ist die Brücke zwischen Kubernetes und AWS Elastic Block Store (EBS). Er ermöglicht es Kubernetes, dynamisch EBS Volumes für `PersistentVolumeClaims` (PVCs) zu erstellen und zu verwalten.
@@ -1673,13 +1774,110 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 ```
 Die `service_account_role_arn` ist der entscheidende Parameter, der dem Add-on die Berechtigung gibt, über die zuvor in Abschnitt [4.1.4](#414-provisionierung-von-iam-für-service-accounts-irsa) definierte IAM-Rolle zu agieren.
 
-#### 4.1.6 Provisionierung der RDS Datenbank und IAM-Rollen
+#### 4.1.6 Provisionierung der RDS Datenbank und Security Group
 
-*(Wichtige Code-Snippets, Entscheidungen)*
+Für die persistente Speicherung der Nextcloud-Anwendungsdaten wird eine AWS Relational Database Service (RDS) Instanz mit PostgreSQL verwendet. Die Provisionierung erfolgt vollständig über Terraform (`rds.tf`, `security_groups.tf`).
+
+*   **Sichere Passwortverwaltung:** Das Master-Passwort wird nicht im Code oder Terraform-State gespeichert. Es wird manuell im **AWS Secrets Manager** hinterlegt. Terraform liest diesen Wert zur Laufzeit über eine `data`-Quelle aus.
+    ```terraform
+    data "aws_secretsmanager_secret_version" "rds_master_password_version" {
+      secret_id = "..." // Referenz zum Secret
+    }
+    
+    resource "aws_db_instance" "nextcloud" {
+      // ...
+      password = data.aws_secretsmanager_secret_version.rds_master_password_version.secret_string
+      // ...
+    }
+    ```
+
+*   **Netzwerk-Isolation:** Die RDS-Instanz wird mittels einer `aws_db_subnet_group` explizit in den **privaten Subnetzen** der VPC platziert. Sie ist somit nicht direkt aus dem Internet erreichbar.
+
+*   **Kontrollierter Zugriff:** Der Zugriff auf die Datenbank wird durch eine dedizierte Security Group (`aws_security_group.rds`) gesteuert. Eine spezifische Ingress-Regel erlaubt die Verbindung auf Port `5432` (PostgreSQL) ausschliesslich von der Security Group, die den EKS-Worker-Nodes zugeordnet ist. Dies stellt sicher, dass nur die Anwendungspods im Cluster die Datenbank erreichen können.
+    ```terraform
+    resource "aws_security_group_rule" "eks_to_rds" {
+      type                     = "ingress"
+      from_port                = 5432
+      to_port                  = 5432
+      protocol                 = "tcp"
+      security_group_id        = aws_security_group.rds.id
+      source_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+    }
+    ```
+
+*   **Hochverfügbarkeit:** Durch Setzen der Variable `rds_multi_az_enabled = true` wird eine Standby-Instanz in einer anderen Availability Zone provisioniert, auf die AWS im Falle eines Ausfalls automatisch umschwenkt.
 
 #### 4.1.7 Secrets Management für Terraform (AWS Credentials in CI/CD)
 
 *(Gewählter Ansatz)*
+
+#### 4.1.8 Spezifikation: Manuelles Proof-of-Concept Deployment
+
+Vor der Automatisierung mit Helm wurde ein manuelles Deployment durchgeführt, um die Integration aller Infrastrukturkomponenten zu validieren. Dieser Abschnitt dokumentiert die durchgeführten Schritte und die Konfiguration der Kubernetes-Ressourcen und dient als Blaupause für die Entwicklung des Helm Charts.
+
+##### A. Übersicht und Reihenfolge der Ressourcen
+
+Für das Deployment wurden vier primäre Kubernetes-Ressourcen in einer spezifischen Reihenfolge erstellt:
+
+1.  **Secret:** Zur sicheren Speicherung der Datenbank-Zugangsdaten und des initialen Nextcloud-Admin-Passworts.
+2.  **PersistentVolumeClaim (PVC):** Zur Anforderung von persistentem Speicher.
+3.  **Deployment:** Zur Definition und Verwaltung des Nextcloud-Anwendungs-Pods.
+4.  **Service:** Zur Bereitstellung der Nextcloud-Anwendung über einen externen Load Balancer.
+
+##### B. Detaillierte Konfiguration
+
+Die folgenden Konfigurationen waren für ein erfolgreiches Deployment entscheidend:
+
+**1. Secret (`nextcloud-db-secret`)**
+Ein `Opaque`-Secret wurde mit den folgenden, base64-codierten Schlüsseln erstellt. Diese werden direkt von den Umgebungsvariablen des offiziellen Nextcloud Docker-Images verwendet.
+
+*   `POSTGRES_HOST`: Der Endpunkt der AWS RDS-Instanz.
+*   `POSTGRES_USER`: Der Master-Benutzername der RDS-Instanz.
+*   `POSTGRES_PASSWORD`: Das Master-Passwort der RDS-Instanz.
+*   `POSTGRES_DB`: Der Name der Datenbank innerhalb der RDS-Instanz.
+*   `NEXTCLOUD_ADMIN_USER`: Der gewünschte Benutzername für den initialen Admin-Account.
+*   `NEXTCLOUD_ADMIN_PASSWORD`: Das gewünschte Passwort für den initialen Admin-Account.
+
+**2. PersistentVolumeClaim (`nextcloud-data-pvc`)**
+Der PVC ist für die Datenpersistenz der stateful Nextcloud-Anwendung unerlässlich.
+
+*   `accessModes`: `ReadWriteOnce`, wie für AWS EBS-Volumes erforderlich.
+*   `storageClassName`: `ebs-sc`, um die benutzerdefinierte StorageClass zu verwenden, die verschlüsselte `gp3`-Volumes provisioniert.
+*   `resources.requests.storage`: `10Gi` als initiale Grösse.
+
+**3. Deployment (`nextcloud-deployment`)**
+Das Deployment ist das Herzstück der Anwendung.
+
+*   **Image:** `nextcloud:latest` (offizielles Docker Hub Image).
+*   **Umgebungsvariablen:** Alle sechs oben genannten Secret-Schlüssel wurden über `valueFrom.secretKeyRef` sicher in den Container injiziert, um die Konfiguration vorzunehmen.
+*   **Volume Mounts:** Ein Volume, das auf den `nextcloud-data-pvc` verweist, wurde in den Container am Pfad `/var/www/html` gemountet. Dies ist der von Nextcloud erwartete Pfad für alle Anwendungs-, Konfigurations- und Benutzerdateien.
+
+**4. Service (`nextcloud-service`)**
+Der Service macht die Anwendung von aussen erreichbar.
+
+*   **Typ:** `LoadBalancer`. Dies weist den AWS Cloud Controller Manager an, automatisch einen AWS Network Load Balancer (NLB) zu provisionieren.
+*   **Selector:** `app: nextcloud`, um den Traffic an die Pods des Deployments zu leiten.
+*   **Ports:** Der Service leitet externen Traffic von Port `80` an den `targetPort` `80` des Containers weiter.
+
+##### C. Referenz-Manifeste und Befehle
+
+Die für diesen manuellen Test verwendeten YAML-Manifeste sind im Verzeichnis [`manual-k8s-manifests/`](./manual-k8s-manifests/) im Repository abgelegt. Die wesentlichen Befehle zur Überprüfung waren:
+
+```bash
+# Anwenden der Manifeste
+kubectl apply -f manual-k8s-manifests/
+
+# Überprüfen des Status der Ressourcen
+kubectl get pvc,pods,svc -w
+
+# Überprüfen der Pod-Logs auf Fehler
+kubectl logs <pod-name> -f
+
+# Durchführen des Persistenz-Tests
+kubectl delete pod <pod-name>
+```
+Diese manuelle Verifizierung hat die Funktionsfähigkeit der gesamten darunterliegenden Infrastruktur bestätigt und den Weg für die Automatisierung mit Helm geebnet.
+
 
 ### 4.2 Nextcloud Helm Chart Entwicklung
 
@@ -2021,6 +2219,48 @@ Die `service_account_role_arn` ist der entscheidende Parameter, der dem Add-on d
 * **Tatsächliches Ergebnis:** Alle Schritte wurden erfolgreich ausgeführt. Der PVC wechselte innerhalb von Sekunden zu `Bound` und ein entsprechendes 4-GiB-EBS-Volume wurde in der AWS-Konsole verifiziert.
 * **Nachweis:** Screenshot der `kubectl get pvc,pv` Ausgabe in Abschnitt [5.2.1](#521-nachweise-der-testergebnisse-screenshotsgifs) unter `ebs_pvc_bound_verification.png` (Platzhalter).
 
+---
+
+**Testfall: Provisionierung und Netzwerkkonnektivität der RDS-Instanz**
+
+*   **Zugehörige User Story:** `Nextcloud#12`, `Nextcloud#13`
+*   **Status:** *(Nach dem Apply ausfüllen)*
+*   **Zielsetzung:** Verifizieren, dass die RDS-Instanz korrekt in den privaten Subnetzen erstellt wird, die Security Group den Zugriff nur vom EKS-Cluster erlaubt und die Verbindungsdaten als Outputs verfügbar sind.
+*   **Testschritte:**
+    1.  Nach erfolgreichem `terraform apply` in der AWS Management Console zu **RDS -> Databases** navigieren.
+    2.  Überprüfen, ob die Instanz `${var.project_name}-db-instance` mit Status "Available" existiert.
+    3.  Die Instanzdetails öffnen und unter **"Connectivity & security"** überprüfen:
+        *   Die VPC ist die korrekte Projekt-VPC.
+        *   Die Subnetze in der Subnet Group sind die privaten Subnetze des Projekts.
+        *   "Public access" ist auf "No" gesetzt.
+        *   Die angehängte Security Group (`${var.project_name}-rds-sg`) ist korrekt.
+    4.  Zur **VPC -> Security Groups** navigieren und die RDS-Security-Group auswählen.
+    5.  Die "Inbound rules" überprüfen. Es sollte eine Regel für Port `5432` existieren, deren Quelle die Security Group ID des EKS-Clusters ist.
+    6.  `terraform output` in der Konsole ausführen und überprüfen, ob die Outputs `rds_instance_endpoint`, `rds_instance_port`, `rds_db_name` und `rds_master_username` korrekte Werte anzeigen.
+*   **Erwartetes Ergebnis:** Alle Komponenten sind wie beschrieben konfiguriert. Die Datenbank ist sicher im privaten Netzwerk platziert und nur für den EKS-Cluster erreichbar.
+*   **Tatsächliches Ergebnis:** *(Nach dem Apply ausfüllen)*
+*   **Nachweis:** *(Optional) Screenshot der Inbound-Regeln der RDS-Security-Group.*
+
+---
+
+**Testfall: Verifizierung der EKS-Node-Konfiguration (IMDS & Topologie)**
+
+*   **Zugehörige User Story:** Indirekt mit `#11` und `#14` verbunden. Entstanden aus der Fehleranalyse in Sprint 3.
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass die EKS-Worker-Nodes korrekt konfiguriert sind, um Konnektivitätsprobleme mit dem EC2 Metadata Service (IMDS) zu vermeiden und die dynamische Volume-Provisionierung zu ermöglichen.
+*   **Testschritte:**
+    1.  Nach erfolgreichem `terraform apply` und dem Start der Worker Nodes den Namen eines Nodes ermitteln: `kubectl get nodes`.
+    2.  Überprüfen, ob die IMDS Hop-Limit auf dem EC2-Level korrekt gesetzt ist (erfordert AWS CLI):
+        `aws ec2 describe-instances --instance-ids <instance-id> --query "Reservations[*].Instances[*].MetadataOptions"`
+        *Erwartetes Ergebnis: `http_put_response_hop_limit` sollte `2` sein.*
+    3.  Überprüfen, ob der EBS CSI-Treiber die Topologie-Informationen auf dem Kubernetes-Node-Objekt korrekt setzen konnte:
+        `kubectl describe node <node-name> | findstr "topology.ebs.csi.aws.com/zone"`
+        *Erwartetes Ergebnis: Der Befehl sollte eine Zeile ausgeben, z.B. `topology.ebs.csi.aws.com/zone=eu-central-1a`.*
+    4.  Die Logs des `ebs-csi-node`-Pods auf dem jeweiligen Node überprüfen:
+        `kubectl logs <ebs-csi-node-pod-name> -n kube-system -c ebs-plugin`
+        *Erwartetes Ergebnis: Die Logs dürfen **keine** Timeout-Fehler (`context deadline exceeded`) bei der IMDS-Abfrage enthalten.*
+*   **Tatsächliches Ergebnis:** Alle Überprüfungsschritte waren nach der Implementierung der `aws_launch_template` erfolgreich. Die IMDS-Konnektivität wurde hergestellt und die Topologie-Labels wurden korrekt gesetzt, was die `Pending`-PVC-Probleme löste.
+*   **Nachweis:** Die erfolgreiche Bereitstellung des Nextcloud-PVC dient als finaler, funktionierender Nachweis für diesen Testfall.
 
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
