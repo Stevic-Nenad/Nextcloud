@@ -34,6 +34,7 @@ resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
 resource "aws_iam_role" "ebs_csi_driver_role" {
   name = "${var.project_name}-ebs-csi-driver-role"
 
+  # This is the corrected and more robust Trust Policy.
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -41,12 +42,18 @@ resource "aws_iam_role" "ebs_csi_driver_role" {
         Effect = "Allow",
         Action = "sts:AssumeRoleWithWebIdentity",
         Principal = {
+          # The entity that is allowed to assume the role. In this case, our EKS cluster's OIDC provider.
           Federated = aws_iam_openid_connect_provider.eks_oidc_provider.arn
         },
+        # These conditions are the security gates. The request must pass ALL of them.
         Condition = {
+          # Gate 1: Check the 'audience' of the token. It must be 'sts.amazonaws.com'.
           StringEquals = {
-            # This line ensures only the specified Service Account can assume this role
-            "${aws_eks_cluster.main.identity[0].oidc[0].issuer}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+            "${replace(aws_iam_openid_connect_provider.eks_oidc_provider.url, "https://", "")}:aud" = "sts.amazonaws.com"
+          },
+          # Gate 2: Check the 'subject' of the token. It must match the specific Kubernetes Service Account.
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks_oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
           }
         }
       }

@@ -18,6 +18,11 @@ resource "aws_eks_node_group" "main_nodes" {
     max_unavailable_percentage = 50
   }
 
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
+
   tags = merge(
     local.common_tags,
     {
