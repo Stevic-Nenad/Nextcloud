@@ -988,6 +988,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * `Nextcloud#32`: Reflexionskapitel im README vervollständigen
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 * **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+    *   **OIDC Authentifizierung für GitHub Actions zu AWS eingerichtet (User Story #20 ✓):**
+        *   Mittels Terraform wurde ein IAM OIDC Identity Provider in AWS erstellt, der eine Vertrauensstellung zu `token.actions.githubusercontent.com` herstellt.
+        *   Eine neue, dedizierte IAM-Rolle (`Nextcloud-cicd-role`) wurde via Terraform provisioniert.
+        *   Die Trust Policy dieser Rolle wurde präzise konfiguriert, um nur Workflows aus dem spezifischen Projekt-Repository (`Stevic-Nenad/Nextcloud`) und dem `main`-Branch zu autorisieren, die Rolle zu übernehmen (`sts:AssumeRoleWithWebIdentity`).
+        *   Eine granulare IAM-Policy mit den minimal notwendigen Berechtigungen (`eks:DescribeCluster`, `eks:AccessKubernetesApi`) wurde erstellt und an die Rolle angehängt, um das Least-Privilege-Prinzip zu wahren.
+        *   Die erfolgreiche Konfiguration wurde durch einen Test-Workflow verifiziert, der die Rolle erfolgreich übernehmen und `aws sts get-caller-identity` ausführen konnte.
+        *   Die Dokumentation des Setups wurde in Abschnitt [4.3.2](#432-authentifizierung-gegenüber-aws-oidc) ergänzt.
 * **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 * **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den
   Lernprozess)*
@@ -2079,6 +2086,35 @@ Dies führt den Benutzer durch die kritischen ersten Schritte, insbesondere das 
 
 #### 4.3.2 Authentifizierung gegenüber AWS (OIDC)
 
+Um eine sichere und passwortlose Authentifizierung der CI/CD-Pipeline gegenüber AWS zu gewährleisten, wird der von AWS und GitHub empfohlene Standard **OpenID Connect (OIDC)** verwendet. Dies eliminiert die Notwendigkeit, langlebige AWS Access Keys als GitHub Secrets zu speichern.
+
+Der Prozess wurde via Terraform in der Datei `terraform/iam_cicd.tf` implementiert und besteht aus zwei Hauptkomponenten:
+
+1.  **IAM OIDC Identity Provider:** Eine einmalige Konfiguration in AWS, die eine Vertrauensbeziehung zum OIDC-Provider von GitHub (`token.actions.githubusercontent.com`) herstellt.
+2.  **IAM-Rolle für die Pipeline:** Eine dedizierte Rolle (`Nextcloud-cicd-role`) wird erstellt. Die entscheidende Konfiguration ist die **Trust Policy**:
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                    "StringLike": {
+                        "token.actions.githubusercontent.com:sub": "repo:Stevic-Nenad/Nextcloud:ref:refs/heads/main"
+                    }
+                }
+            }
+        ]
+    }
+    ```
+    Die `Condition` stellt sicher, dass nur Workflows, die aus dem Repository `Stevic-Nenad/Nextcloud` vom `main`-Branch stammen, diese Rolle übernehmen dürfen.
+
+Im GitHub Actions Workflow wird dann die Action `aws-actions/configure-aws-credentials` verwendet. Diese fordert bei GitHub ein OIDC JWT-Token an, präsentiert es AWS, übernimmt die konfigurierte Rolle und stellt temporäre AWS-Credentials für alle nachfolgenden Schritte im Job zur Verfügung.
+
 #### 4.3.3 Integrationsschritte (Terraform, Helm)
 
 #### 4.3.4 Secrets Management in der Pipeline
@@ -2443,6 +2479,35 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
         *Erwartetes Ergebnis: Die Logs dürfen **keine** Timeout-Fehler (`context deadline exceeded`) bei der IMDS-Abfrage enthalten.*
 *   **Tatsächliches Ergebnis:** Alle Überprüfungsschritte waren nach der Implementierung der `aws_launch_template` erfolgreich. Die IMDS-Konnektivität wurde hergestellt und die Topologie-Labels wurden korrekt gesetzt, was die `Pending`-PVC-Probleme löste.
 *   **Nachweis:** Die erfolgreiche Bereitstellung des Nextcloud-PVC dient als finaler, funktionierender Nachweis für diesen Testfall.
+
+---
+
+**Testfall: Validierung der OIDC-Authentifizierung von GitHub Actions zu AWS**
+
+*   **Zugehörige User Story:** `Nextcloud#20` - OIDC Authentifizierung für GitHub Actions zu AWS einrichten
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Verifizieren, dass die via Terraform erstellte OIDC-Konfiguration es einem GitHub Actions Workflow erlaubt, die dedizierte IAM-Rolle sicher zu übernehmen und AWS-API-Aufrufe auszuführen.
+*   **Testschritte:**
+    1.  **Infrastruktur-Provisionierung:** Ausführen von `terraform apply` im `terraform/`-Verzeichnis, um den `aws_iam_openid_connect_provider` und die `aws_iam_role` (`Nextcloud-cicd-role`) zu erstellen.
+    2.  **Manuelle Überprüfung in AWS IAM:**
+        *   Navigieren zu **IAM -> Identity providers**. Verifizieren, dass der Provider für `token.actions.githubusercontent.com` mit der korrekten `Audience` (`sts.amazonaws.com`) existiert.
+        *   Navigieren zu **IAM -> Roles** und die Rolle `Nextcloud-cicd-role` auswählen.
+        *   Den Tab **"Trust relationships"** prüfen. Die Policy muss die `Federated`-Principal-ARN des OIDC-Providers und die `Condition` enthalten, die den Zugriff auf das korrekte GitHub-Repository (`repo:Stevic-Nenad/Nextcloud:ref:refs/heads/main`) beschränkt.
+    3.  **Funktionale Verifizierung via GitHub Actions:**
+        *   Erstellen eines temporären Workflows (`.github/workflows/test-auth.yml`), der manuell getriggert werden kann.
+        *   Der Workflow-Job muss die `permissions: id-token: write` besitzen.
+        *   Der Workflow verwendet die Action `aws-actions/configure-aws-credentials@v4`, um die Übernahme der `Nextcloud-cicd-role` zu versuchen.
+        *   Als nachfolgenden Schritt führt der Workflow `aws sts get-caller-identity` aus.
+        *   Den Workflow manuell über die GitHub-UI starten.
+*   **Erwartetes Ergebnis:**
+    *   Die Terraform-Ressourcen werden ohne Fehler erstellt.
+    *   Die manuelle Überprüfung in der AWS-Konsole bestätigt die korrekte Konfiguration der Trust Policy.
+    *   Der Test-Workflow in GitHub Actions läuft erfolgreich durch.
+    *   Die Ausgabe des `aws sts get-caller-identity`-Befehls im Workflow-Log zeigt die `Arn` der übernommenen Rolle (`...:assumed-role/Nextcloud-cicd-role/...`), nicht die eines IAM-Users.
+*   **Tatsächliches Ergebnis:** Alle Schritte waren erfolgreich. Die manuelle Überprüfung der IAM-Konfiguration war korrekt. Der `test-auth.yml`-Workflow wurde erfolgreich ausgeführt und die Ausgabe von `get-caller-identity` bestätigte, dass die Pipeline-Rolle wie erwartet übernommen wurde.
+*   **Nachweis:** Ein Screenshot der erfolgreichen `test-auth.yml`-Workflow-Ausgabe in GitHub, der die `aws sts get-caller-identity`-Antwort zeigt, dient als primärer Nachweis.
+
+---
 
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
