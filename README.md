@@ -873,7 +873,16 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#19`: **Einfachen Helm-Test für Deployment-Verfügbarkeit implementieren:** Ein `templates/tests/test-connection.yaml` erstellen. Dieses Template definiert einen Test-Pod, der mittels `wget` oder `curl` versucht, den Nextcloud-Service zu erreichen. Ein erfolgreicher Test verifiziert die grundlegende Netzwerk-Konnektivität und das Service-Routing.
     *   `Nextcloud#18`: **NOTES.txt für Post-Installationshinweise erstellen:** Eine nützliche `NOTES.txt`-Datei schreiben, die dem Benutzer nach einem `helm install` dynamisch generierte Informationen anzeigt, wie z.B. den Befehl zum Abrufen der externen IP des Load Balancers.
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+*   **Erreichtes Inkrement / Ergebnisse:**
+    *   **Helm Chart Grundgerüst erstellt (User Story #16 ✓):**
+        *   Ein neues Helm Chart wurde im Verzeichnis `charts/nextcloud-chart` angelegt.
+        *   `Chart.yaml` wurde mit Metadaten (Name, Version, Beschreibung) befüllt.
+        *   Eine `values.yaml`-Datei wurde erstellt, die zentrale Parameter wie Image-Version, Replica-Anzahl, Service-Typ, Port und Persistenz-Einstellungen (Grösse, StorageClass) konfigurierbar macht.
+        *   Die validierten manuellen Manifeste aus Sprint 3 für Deployment, Service und PersistentVolumeClaim wurden erfolgreich in Helm-Templates (`templates/`) überführt.
+        *   Eine `_helpers.tpl`-Datei wurde für standardisierte Labels und Benennungen implementiert.
+        *   Die Befehle `helm lint` und `helm template` laufen erfolgreich durch und bestätigen die syntaktische und strukturelle Korrektheit des Charts.
+        *   Die Dokumentation der Chart-Struktur und Konfiguration wurde in den Abschnitten [4.2.1](#421-helm-chart-struktur), [4.2.2](#422-wichtige-templates) und [4.2.3](#423-konfigurationsmöglichkeiten-über-valuesyaml) im Haupt-README ergänzt.
+        *   Alle projektspezifischen DoD-Punkte für diese User Story sind erfüllt.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
@@ -1881,17 +1890,77 @@ Diese manuelle Verifizierung hat die Funktionsfähigkeit der gesamten darunterli
 
 ### 4.2 Nextcloud Helm Chart Entwicklung
 
-*Das massgeschneiderte Helm Chart für Nextcloud.*
+Um das Deployment von Nextcloud zu standardisieren, zu versionieren und wiederholbar zu machen, wurde ein dediziertes Helm Chart entwickelt. Dies ersetzt die manuellen `kubectl apply`-Schritte aus dem Proof-of-Concept und bildet die Grundlage für die CI/CD-Pipeline. Das Chart befindet sich im Verzeichnis `charts/nextcloud-chart`.
 
 #### 4.2.1 Helm Chart Struktur (`Chart.yaml`, `values.yaml`, `templates/`)
 
-#### 4.2.2 Wichtige Templates (Deployment, Service, PVC, ConfigMap, Secrets)
+Die Struktur des Charts folgt den Helm-Best-Practices und wurde bewusst schlank gehalten:
 
-* *(Vorstellung der Kern-Templates mit Snippets und Erklärungen)*
+*   **`Chart.yaml`**: Enthält die Metadaten des Charts wie Name, Beschreibung, Chart-Version (`version`) und die Version der Nextcloud-Anwendung (`appVersion`).
+*   **`values.yaml`**: Die zentrale Konfigurationsdatei. Hier können Benutzer alle wichtigen Parameter des Deployments anpassen, ohne die Templates ändern zu müssen.
+*   **`templates/`**: Dieses Verzeichnis enthält die Kubernetes-Manifest-Vorlagen.
+    *   **`_helpers.tpl`**: Eine Hilfsdatei zur Generierung von standardisierten Namen und Labels, was die Konsistenz und Wartbarkeit erhöht.
+    *   **`pvc.yaml`**: Template für den `PersistentVolumeClaim` zur Anforderung von Speicher.
+    *   **`deployment.yaml`**: Template für das `Deployment`, das den Nextcloud-Pod verwaltet.
+    *   **`service.yaml`**: Template für den `Service`, der die Anwendung im Netzwerk verfügbar macht (z.B. via Load Balancer).
+
+#### 4.2.2 Wichtige Templates (Deployment, Service, PVC)
+
+Die Templates wurden direkt von den validierten manuellen Manifesten aus Sprint 3 abgeleitet.
+
+*   **`deployment.yaml`**: Das Herzstück. Es referenziert Werte aus `values.yaml` für die Image-Version, Replica-Anzahl und bindet die Datenbank-Credentials aus einem extern verwalteten Kubernetes-Secret ein.
+    ```yaml
+    # Snippet aus templates/deployment.yaml
+    spec:
+      replicas: {{ .Values.replicaCount }}
+      template:
+        spec:
+          containers:
+            - name: {{ .Chart.Name }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              env:
+                - name: POSTGRES_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.existingSecretName }}
+                      key: POSTGRES_HOST
+              # ... weitere env-Variablen ...
+              volumeMounts:
+                - name: nextcloud-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: {{ include "nextcloud-chart.fullname" . }}-data
+    ```
+*   **`pvc.yaml`**: Definiert den `PersistentVolumeClaim`. Die Grösse und die `storageClassName` sind über `values.yaml` steuerbar.
+*   **`service.yaml`**: Erstellt den `Service`, dessen Typ (`LoadBalancer`, `ClusterIP`, etc.) und Port in `values.yaml` definiert werden können.
 
 #### 4.2.3 Konfigurationsmöglichkeiten über `values.yaml`
 
-* *(Beispiele für wichtige Parameter)*
+Die `values.yaml` ermöglicht die flexible Anpassung des Deployments. Die wichtigsten Parameter sind:
+
+```yaml
+# Ausschnitt aus values.yaml
+replicaCount: 1
+
+image:
+  repository: nextcloud
+  tag: "latest" # Überschreibt die appVersion aus Chart.yaml
+
+service:
+  type: LoadBalancer
+  port: 80
+
+persistence:
+  enabled: true
+  storageClassName: "ebs-sc"
+  size: 10Gi
+
+existingSecretName: "nextcloud-db-secret"
+```
+
+Diese Struktur macht das Chart flexibel genug für verschiedene Umgebungen (Entwicklung, Produktion) und einfach in einer CI/CD-Pipeline zu verwenden.
 
 ### 4.3 CI/CD Pipeline mit GitHub Actions
 
