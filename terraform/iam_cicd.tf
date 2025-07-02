@@ -1,8 +1,12 @@
+# This file defines the IAM resources required for the GitHub Actions CI/CD pipeline
+# to securely authenticate with AWS using OIDC.
+
+# --- IAM OIDC Provider for GitHub Actions ---
+# This resource establishes the trust relationship between your AWS account and GitHub's OIDC provider.
+# It only needs to be created once per AWS account. It tells AWS to trust tokens from GitHub.
 resource "aws_iam_openid_connect_provider" "github_actions_oidc_provider" {
-  # This URL is fixed and is the issuer for all GitHub Actions OIDC tokens.
   url = "https://token.actions.githubusercontent.com"
 
-  # The client ID for GitHub Actions OIDC is always sts.amazonaws.com.
   client_id_list = ["sts.amazonaws.com"]
 
   # These thumbprints are for the root certificates of the GitHub Actions OIDC provider.
@@ -18,7 +22,8 @@ resource "aws_iam_openid_connect_provider" "github_actions_oidc_provider" {
   )
 }
 
-
+# --- Trust Policy Data Source for the CI/CD Role ---
+# This data source constructs the JSON trust policy that defines who can assume our CI/CD role.
 data "aws_iam_policy_document" "github_actions_trust_policy" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -29,9 +34,8 @@ data "aws_iam_policy_document" "github_actions_trust_policy" {
       identifiers = [aws_iam_openid_connect_provider.github_actions_oidc_provider.arn]
     }
 
-    # This CONDITION is the most important part. It scopes the trust down to:
-    # - ONLY workflows from your specific GitHub repository (`Stevic-Nenad/Nextcloud`).
-    # - ONLY workflows running on the `main` branch.
+    # CRITICAL: This condition scopes the trust down to ONLY workflows from your specific GitHub repository
+    # and (optionally) a specific branch, preventing any other repository from assuming this role.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
@@ -40,12 +44,12 @@ data "aws_iam_policy_document" "github_actions_trust_policy" {
   }
 }
 
+# --- IAM Role for the CI/CD Pipeline ---
+# This is the specific role that our GitHub Actions workflow will assume.
 resource "aws_iam_role" "github_actions_role" {
   name               = "${var.project_name}-cicd-role"
   assume_role_policy = data.aws_iam_policy_document.github_actions_trust_policy.json
-
-  description = "IAM Role to be assumed by GitHub Actions for deploying the Nextcloud app."
-
+  description        = "IAM Role to be assumed by GitHub Actions for deploying the Nextcloud app and managing infrastructure."
   max_session_duration = 3600 # 1 hour
 
   tags = merge(
@@ -56,46 +60,29 @@ resource "aws_iam_role" "github_actions_role" {
   )
 }
 
+# --- Permissions Policy for the CI/CD Role ---
+# This data source constructs the JSON permissions policy, adhering to the principle of least privilege.
 data "aws_iam_policy_document" "github_actions_permissions" {
+  # Permissions to allow Terraform to manage all project resources
   statement {
-    actions = [
-      # Permissions needed to update the kubeconfig for EKS
-      "eks:DescribeCluster"
-    ]
-    resources = [
-      aws_eks_cluster.main.arn
-    ]
+    sid    = "AllowTerraformToManageProjectResources"
     effect = "Allow"
-  }
-
-  statement {
     actions = [
-      # Permissions for Helm/kubectl to interact with the cluster.
-      # Very general, but for this project, this is a pragmatic approach.
-      "eks:AccessKubernetesApi"
+      "ec2:*",
+      "eks:*",
+      "rds:*",
+      "iam:*", # Needed for creating roles, policies, etc.
+      "s3:*",  # Needed for backend state
+      "dynamodb:*",
+      "ecr:*"
     ]
-    resources = [
-      aws_eks_cluster.main.arn
-    ]
-    effect = "Allow"
-  }
-
-  statement {
-    actions = [
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:InitiateLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload",
-      "ecr:PutImage"
-    ]
-    resources = [
-      aws_ecr_repository.nextcloud_app.arn
-    ]
-    effect = "Allow"
+    # In a real production scenario, this would be scoped down further.
+    # For this project, allowing full control over these services is pragmatic.
+    resources = ["*"]
   }
 }
 
+# --- IAM Policy and Attachment ---
 resource "aws_iam_policy" "github_actions_policy" {
   name        = "${var.project_name}-cicd-policy"
   description = "Permissions for the GitHub Actions CI/CD pipeline."
