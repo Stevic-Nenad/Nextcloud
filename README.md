@@ -872,7 +872,9 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#17`: **Secrets & ConfigMap für dynamische Konfiguration templatzieren:** Ein Template für das Datenbank-Secret erstellen, das seine Werte aus der `values.yaml` bezieht. Zusätzlich ein ConfigMap-Template erstellen, das `trusted_domains` und `overwrite.cli.url` für Nextcloud konfiguriert, um das `localhost`-Redirect-Problem zu lösen.
     *   `Nextcloud#19`: **Einfachen Helm-Test für Deployment-Verfügbarkeit implementieren:** Ein `templates/tests/test-connection.yaml` erstellen. Dieses Template definiert einen Test-Pod, der mittels `wget` oder `curl` versucht, den Nextcloud-Service zu erreichen. Ein erfolgreicher Test verifiziert die grundlegende Netzwerk-Konnektivität und das Service-Routing.
     *   `Nextcloud#18`: **NOTES.txt für Post-Installationshinweise erstellen:** Eine nützliche `NOTES.txt`-Datei schreiben, die dem Benutzer nach einem `helm install` dynamisch generierte Informationen anzeigt, wie z.B. den Befehl zum Abrufen der externen IP des Load Balancers.
-*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    *   **Erkenntnis:** Bei der Überprüfung der ersten gerenderten Manifeste (`helm template`) wurde eine unschöne, redundante Benennung der Kubernetes-Ressourcen (z.B. `nextcloud-nextcloud-chart`) festgestellt.
+    *   **Lösung (Impediment behoben):** Das Problem wurde schnell auf eine suboptimale Logik im `_helpers.tpl`-Template zurückgeführt. Das Template wurde durch die Standard-Helm-Logik ersetzt und der Chart-Name in `Chart.yaml` vereinfacht. Dies führte zu sauberen und vorhersehbaren Ressourcennamen. Dieser schnelle Fix verhinderte technische Schulden und verbesserte die Chart-Qualität sofort.
 *   **Erreichtes Inkrement / Ergebnisse:**
     *   **Helm Chart Grundgerüst erstellt (User Story #16 ✓):**
         *   Ein neues Helm Chart wurde im Verzeichnis `charts/nextcloud-chart` angelegt.
