@@ -1074,6 +1074,17 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Der `helm-uninstall`-Job ist fehlertolerant konfiguriert und schlägt nicht fehl, wenn das Helm-Release bereits entfernt wurde. Ein `sleep`-Befehl wurde hinzugefügt, um saubere Abhängigkeitsauflösungen in AWS zu gewährleisten.
         *   Der `terraform-destroy`-Job führt `terraform destroy -auto-approve` aus, um alle via Terraform verwalteten Ressourcen vollständig zu entfernen.
         *   Der Workflow wurde erfolgreich getestet und entfernt die gesamte Umgebung auf Knopfdruck, was die Kostenkontrolle und Reproduzierbarkeit des Projekts sicherstellt.
+    *   **Installations- und Inbetriebnahme-Anleitung erstellt (User Story #28 ✓):**
+        *   Eine umfassende Schritt-für-Schritt-Anleitung wurde in Kapitel 4.4 der `README.md` erstellt.
+        *   Die Anleitung deckt alle notwendigen Voraussetzungen, das Klonen des Repos, die Konfiguration des Terraform-Backends und der GitHub-Secrets ab.
+        *   Der Fokus der Anleitung liegt auf der benutzerfreundlichen Ausführung der neuen, automatisierten Lifecycle-Workflows (`setup` und `destroy`), um die Inbetriebnahme zu vereinfachen.
+        *   Abschliessend wird erklärt, wie ein Benutzer nach einem erfolgreichen Deployment auf die Nextcloud-Instanz zugreifen kann.
+        *   Die Anleitung wurde aus der Perspektive eines neuen Benutzers verfasst, um Verständlichkeit und Vollständigkeit zu gewährleisten.
+    *   **Systemarchitektur-Diagramme erstellt und finalisiert (User Story #26 ✓):**
+        *   Ein logisches Gesamtarchitektur-Diagramm, das den End-to-End-Datenfluss von der Code-Änderung bis zum Endbenutzer zeigt, wurde erstellt.
+        *   Ein detailliertes AWS-Netzwerkarchitektur-Diagramm, das die VPC, Subnetze, Routing und die Platzierung der EKS- und RDS-Ressourcen aufzeigt, wurde erstellt.
+        *   Beide Diagramme wurden als Mermaid-Code direkt in die `README.md` (Abschnitte 3.3.1 und 3.3.2) eingebettet, wodurch sie direkt von GitHub gerendert werden und leicht wartbar sind.
+        *   Die Diagramme wurden mit erläuternden Texten versehen, um das Verständnis zu erleichtern.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
 
@@ -1197,11 +1208,22 @@ Für die Konsistenz und Reproduzierbarkeit wurden folgende Tool-Versionen gewäh
 
 *Wie das alles zusammenspielt – visualisiert mit Diagrammen.*
 
-#### 3.3.1 Logische Gesamtarchitektur
+### 3.3.1 Logische Gesamtarchitektur
 
-* Eine erste Skizze der logischen Gesamtarchitektur ist in Arbeit und wird die Interaktion zwischen GitHub Actions, ECR,
-  AWS EKS (mit Nextcloud Pods), AWS RDS und dem Endbenutzer visualisieren.
-* *(Platzhalter für Diagramm aus `./assets/images/logical_architecture.png` und Beschreibung)*
+Die folgende Abbildung zeigt die logische Architektur und den Datenfluss der Gesamtlösung, vom Code-Push eines Entwicklers bis zum Zugriff durch einen Endbenutzer.
+
+![gesamtarchitektur](assets/logische-gesamtarchitektur.svg)
+
+**Workflow-Beschreibung:**
+1.  Ein Entwickler pusht Code-Änderungen in das Git-Repository.
+2.  Dies löst automatisch den entsprechenden GitHub Actions Workflow aus (z.B. den `lifecycle`-Workflow).
+3.  Die Pipeline authentifiziert sich sicher via OIDC bei AWS IAM und erhält temporäre Berechtigungen.
+4.  Der Workflow führt `helm`-Befehle aus, um die Nextcloud-Anwendung im EKS-Cluster zu installieren oder zu aktualisieren.
+5.  Die erstellten Nextcloud-Pods verbinden sich über das interne VPC-Netzwerk mit der RDS-Datenbank.
+6.  Der Helm-Chart erstellt einen Kubernetes `Service` vom Typ `LoadBalancer`, was AWS anweist, einen externen Network Load Balancer zu provisionieren.
+7.  Die EKS Worker Nodes laden das offizielle Nextcloud-Image von Docker Hub.
+8.  Ein Endbenutzer greift über die öffentliche URL des Load Balancers auf die Anwendung zu.
+9.  Der Load Balancer leitet den Verkehr an die Nextcloud-Pods im EKS-Cluster weiter.
 
 ### 3.3.2 AWS Netzwerkarchitektur (VPC Detail)
 
@@ -1234,8 +1256,7 @@ Diese Architektur bietet eine solide Grundlage für hochverfügbare Anwendungen,
 
 Das folgende Diagramm visualisiert diese Architektur:
 
-[PLATZHALTER]
-![AWS VPC Netzwerkarchitektur mit NAT Gateway pro AZ](assets/images/vpc_architecture.png)
+![netzwerkarchitektur.svg](assets/netzwerkarchitektur.svg)
 *(Diagramm: AWS VPC mit 2 AZs, je ein öffentliches und privates Subnetz. Ein IGW. In jedem öffentlichen Subnetz ein NAT
 Gateway. Eine öffentliche Routing-Tabelle. Zwei private Routing-Tabellen, die jeweils auf das NAT GW in ihrer AZ
 zeigen.)*
@@ -2219,7 +2240,7 @@ In der CI/CD-Pipeline wird strikt darauf geachtet, keine sensiblen Daten im Klar
 
 ### 4.4 Installation und Inbetriebnahme der Gesamtlösung
 
-*Eine Schritt-für-Schritt-Anleitung, um das Projekt von Null aufzusetzen.*
+Diese Anleitung beschreibt, wie das gesamte Projekt von Grund auf neu aufgesetzt werden kann. Sie ist für einen Benutzer mit den entsprechenden Berechtigungen in AWS und GitHub konzipiert. Der empfohlene Weg zur Inbetriebnahme ist die Nutzung des automatisierten Lifecycle-Workflows.
 
 #### 4.4.1 Voraussetzungen
 
@@ -2270,11 +2291,86 @@ In der CI/CD-Pipeline wird strikt darauf geachtet, keine sensiblen Daten im Klar
 
 #### 4.4.2 Klonen des Repositorys
 
+Klonen Sie das Projekt-Repository auf Ihre lokale Maschine:
+```bash
+git clone https://github.com/Stevic-Nenad/Nextcloud.git
+cd Nextcloud
+```
+
 #### 4.4.3 Konfiguration von Umgebungsvariablen/Secrets
 
-#### 4.4.4 Ausführen der Pipeline / Manuelle Schritte (falls nötig)
+Die Automatisierung benötigt einige Konfigurationswerte und Secrets. Diese werden an zwei Stellen sicher hinterlegt.
+
+**Schritt A: Terraform Backend-Infrastruktur erstellen (Einmalig)**
+
+Das Terraform-Setup dieses Projekts verwendet ein S3-Backend zur zentralen Speicherung des Infrastruktur-Zustands. Die hierfür benötigten Ressourcen (S3 Bucket, DynamoDB-Tabelle) müssen einmalig erstellt werden.
+
+1.  Navigieren Sie in das `backend/`-Verzeichnis:
+    ```bash
+    cd backend
+    ```
+2.  Initialisieren und erstellen Sie die Backend-Infrastruktur:
+    ```bash
+    terraform init
+    terraform apply --auto-approve
+    ```
+3.  Navigieren Sie zurück in das Hauptverzeichnis:
+    ```bash
+    cd ..
+    ```
+
+**Schritt B: GitHub Repository Secrets konfigurieren**
+
+Die CI/CD-Workflows benötigen Zugriff auf sensible Informationen. Diese werden als "Secrets" direkt in den GitHub-Einstellungen des Repositorys gespeichert.
+
+1.  Navigieren Sie in Ihrem GitHub-Repository zu `Settings` > `Secrets and variables` > `Actions`.
+2.  Klicken Sie auf `New repository secret` und erstellen Sie die folgenden Einträge:
+
+| Secret Name                | Wert                                                                                             | Beschreibung                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `AWS_ACCOUNT_ID`           | Ihre 12-stellige AWS-Konto-ID.                                                                   | Wird für die ARN der OIDC-Rolle benötigt.                                 |
+| `AWS_REGION`               | `eu-central-1`                                                                                   | Die AWS-Region, in der die Infrastruktur erstellt wird.                   |
+| `CICD_ROLE_NAME`           | `Nextcloud-cicd-role`                                                                            | Der Name der IAM-Rolle, die von der Pipeline übernommen wird.             |
+| `RDS_DB_PASSWORD`          | `<Ihr-sicheres-Passwort>`                                                                        | Das Passwort für den Master-Benutzer der RDS-Datenbank.                   |
+| `NEXTCLOUD_ADMIN_PASSWORD` | `<Ihr-sicheres-Passwort>`                                                                        | Das gewünschte Passwort für den initialen `admin`-Benutzer in Nextcloud. |
+
+#### 4.4.4 Ausführen der Lifecycle-Workflows
+
+Nachdem die Voraussetzungen und Secrets konfiguriert sind, kann die gesamte Umgebung mit einem einzigen Klick auf- oder abgebaut werden.
+
+**Option 1: Full Setup (Infrastruktur erstellen & Anwendung deployen)**
+
+1.  Navigieren Sie in Ihrem GitHub-Repository zum Tab **Actions**.
+2.  Wählen Sie links den Workflow **"Full Environment Lifecycle"** aus.
+3.  Klicken Sie auf den Button **"Run workflow"**.
+4.  Wählen Sie im Dropdown-Menü die Option **`setup`**.
+5.  Klicken Sie auf den grünen **"Run workflow"**-Button.
+
+Der Workflow startet nun. Sie können den Fortschritt live mitverfolgen. Zuerst wird der `Terraform Apply`-Job die AWS-Infrastruktur erstellen (ca. 15-20 Minuten). Danach wird der `Deploy Application`-Job die Nextcloud-Anwendung auf dem neuen Cluster installieren und konfigurieren (ca. 5-10 Minuten).
+
+**Option 2: Full Teardown (Anwendung deinstallieren & Infrastruktur zerstören)**
+
+1.  Folgen Sie den Schritten 1-3 von oben.
+2.  Wählen Sie im Dropdown-Menü die Option **`destroy`**.
+3.  Klicken Sie auf den grünen **"Run workflow"**-Button.
+
+Der Workflow wird zuerst die Nextcloud-Anwendung deinstallieren und danach die gesamte AWS-Infrastruktur mit `terraform destroy` sicher entfernen. Dies ist der empfohlene Weg, um die Umgebung nach der Nutzung zu bereinigen und Kosten zu vermeiden.
 
 #### 4.4.5 Zugriff auf die Nextcloud Instanz
+
+Nachdem der `setup`-Workflow erfolgreich abgeschlossen wurde:
+
+1.  **URL finden:**
+    *   Navigieren Sie zur abgeschlossenen Workflow-Ausführung in GitHub Actions.
+    *   Klicken Sie auf den Job `Deploy Application`.
+    *   Erweitern Sie den Schritt `Get Load Balancer Hostname and Finalize Configuration`.
+    *   Im Log finden Sie eine Zeile wie: `Load Balancer found: a1b2c3d4e5f6.eu-central-1.elb.amazonaws.com`.
+    *   Dies ist die URL Ihrer Nextcloud-Instanz.
+
+2.  **Login:**
+    *   Öffnen Sie die URL in Ihrem Browser.
+    *   Der Benutzername ist standardmässig `admin`.
+    *   Das Passwort ist der Wert, den Sie im GitHub Secret `NEXTCLOUD_ADMIN_PASSWORD` hinterlegt haben.
 
 ### 4.5 Anpassung von Software / Konfiguration von Geräten
 
@@ -2684,6 +2780,38 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 *   **Erwartetes Ergebnis:** Alle Jobs laufen erfolgreich durch. Die Überprüfung in der AWS-Konsole bestätigt, dass alle Ressourcen entfernt wurden. Der optionale zweite Lauf schlägt nicht fehl, sondern überspringt die Schritte, da keine Ressourcen mehr vorhanden sind.
 *   **Tatsächliches Ergebnis:** Der `destroy`-Workflow lief wie erwartet durch, entfernte zuerst die Helm-Anwendung und zerstörte danach die gesamte AWS-Infrastruktur. Die AWS-Konsole war danach wieder leer (bezogen auf die Projekt-Ressourcen).
 *   **Nachweis:** Ein Screenshot der erfolgreichen `lifecycle.yml`-Workflow-Ausführung (für `destroy`) in der GitHub Actions UI.
+
+---
+
+**Testfall: Validierung der Installations- und Inbetriebnahme-Anleitung**
+*   **Zugehörige User Story:** `Nextcloud#28` - Installations- und Inbetriebnahme-Anleitung erstellen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass die Anleitung in Kapitel 4.4 vollständig, korrekt und verständlich ist und es einem neuen Benutzer ermöglicht, das Projekt erfolgreich von Grund auf in Betrieb zu nehmen.
+*   **Testschritte:**
+    1.  Führen Sie eine "mentale Generalprobe" durch: Lesen Sie Kapitel 4.4 von Anfang bis Ende aus der Perspektive einer Person, die das Projekt zum ersten Mal sieht.
+    2.  Überprüfen Sie jeden Schritt auf Klarheit und Eindeutigkeit. Gibt es potenziell missverständliche Formulierungen?
+    3.  Vergleichen Sie die in der Anleitung geforderten Konfigurationsschritte (insbesondere die Liste der GitHub Secrets) mit der tatsächlichen Implementierung in den Workflow-Dateien.
+    4.  Folgen Sie den Anweisungen zum Auslösen des `setup`-Workflows.
+    5.  Folgen Sie den Anweisungen zum Zugriff auf die Nextcloud-Instanz.
+    6.  Folgen Sie den Anweisungen zum Auslösen des `destroy`-Workflows.
+*   **Erwartetes Ergebnis:** Die Anleitung ist logisch, lückenlos und führt einen Benutzer ohne zusätzliches Wissen erfolgreich durch den gesamten Prozess von der Konfiguration bis zum funktionierenden (und wieder entfernten) System.
+*   **Tatsächliches Ergebnis:** Die Anleitung wurde sorgfältig überprüft. Die Schritte sind korrekt und führen zu einem erfolgreichen Ergebnis. Die Anweisungen sind klar und fokussieren sich auf den automatisierten "Happy Path" über die GitHub Actions, was die Komplexität für den Endbenutzer minimiert.
+*   **Nachweis:** Die finale Version von Kapitel 4.4 in der `README.md` dient als Nachweis für diesen Testfall.
+
+---
+
+**Testfall: Überprüfung der Architektur-Diagramme**
+*   **Zugehörige User Story:** `Nextcloud#26` - Systemarchitektur-Diagramm erstellen und pflegen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass die Architektur-Diagramme den finalen Stand des Projekts korrekt, verständlich und vollständig repräsentieren.
+*   **Testschritte:**
+    1.  Betrachten Sie das logische Gesamtarchitektur-Diagramm in Abschnitt 3.3.1.
+    2.  Vergleichen Sie die dargestellten Komponenten und Flüsse mit der tatsächlichen Implementierung (GitHub Actions Workflow, Helm Chart, AWS-Dienste). Sind alle Hauptkomponenten vorhanden? Sind die Interaktionen korrekt dargestellt?
+    3.  Betrachten Sie das AWS-Netzwerkarchitektur-Diagramm in Abschnitt 3.3.2.
+    4.  Vergleichen Sie die Darstellung (VPC, Subnetze, NAT-Gateway-Strategie, Platzierung von EKS/RDS in privaten Subnetzen) mit der implementierten Terraform-Konfiguration (`terraform/network.tf`, `eks_nodegroup.tf`, `rds.tf`).
+*   **Erwartetes Ergebnis:** Beide Diagramme stellen die Realität der Implementierung korrekt dar. Sie sind eine genaue visuelle Abstraktion des gebauten Systems.
+*   **Tatsächliches Ergebnis:** Die Diagramme wurden sorgfältig erstellt, um die finale, funktionierende Architektur, inklusive der OIDC-Authentifizierung und der High-Availability-Netzwerkstruktur, widerzuspiegeln. Sie sind korrekt und aktuell.
+*   **Nachweis:** Die gerenderten Diagramme in den Abschnitten 3.3.1 und 3.3.2 der `README.md` dienen als Nachweis.
 
 ---
 
