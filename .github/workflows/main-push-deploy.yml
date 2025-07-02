@@ -1,0 +1,41 @@
+name: Deploy on Main Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  get-infra-data:
+    runs-on: ubuntu-latest
+    outputs:
+      eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
+      rds_host: ${{ steps.tf_outputs.outputs.rds_host }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Terraform Init
+        run: terraform -chdir=./terraform init
+      - name: Get Terraform Outputs
+        id: tf_outputs
+        run: |
+          cd ./terraform
+          echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> $GITHUB_OUTPUT
+          echo "rds_host=$(terraform output -raw rds_instance_endpoint)" >> $GITHUB_OUTPUT
+
+  call-reusable-deployment:
+    name: "Deploy Application"
+    needs: get-infra-data
+    uses: ./.github/workflows/reusable-deploy-app.yml@main
+    with:
+      EKS_CLUSTER_NAME: ${{ needs.get-infra-data.outputs.eks_cluster_name }}
+      RDS_DB_HOST: ${{ needs.get-infra-data.outputs.rds_host }}
+    secrets: inherit # 'inherit' is a shortcut to pass all secrets
