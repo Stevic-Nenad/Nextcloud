@@ -4,10 +4,10 @@ resource "aws_eks_cluster" "main" {
   version  = var.eks_cluster_version
 
   vpc_config {
-    subnet_ids = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
+    subnet_ids              = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
     endpoint_private_access = false
-    endpoint_public_access = true
-    public_access_cidrs = var.eks_public_access_cidrs
+    endpoint_public_access  = true
+    public_access_cidrs     = var.eks_public_access_cidrs
   }
 
   tags = merge(

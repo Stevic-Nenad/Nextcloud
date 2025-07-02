@@ -1,12 +1,12 @@
 resource "aws_eks_node_group" "main_nodes" {
-  cluster_name  = aws_eks_cluster.main.name
+  cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project_name}-main-nodes"
-  node_role_arn = aws_iam_role.eks_node_role.arn
+  node_role_arn   = aws_iam_role.eks_node_role.arn
 
-  subnet_ids    = aws_subnet.private[*].id
+  subnet_ids = aws_subnet.private[*].id
 
   instance_types = var.eks_node_instance_types
-  capacity_type = "ON_DEMAND"
+  capacity_type  = "ON_DEMAND"
 
   scaling_config {
     desired_size = 2 //Enough for basic HA

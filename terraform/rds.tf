@@ -36,12 +36,12 @@ data "aws_secretsmanager_secret_version" "rds_master_password_version" {
 }
 
 resource "aws_db_instance" "nextcloud" {
-  identifier           = "${lower(var.project_name)}-db-instance"
-  engine               = "postgres"
-  engine_version       = var.rds_pg_version
-  instance_class       = var.rds_instance_class
-  allocated_storage    = var.rds_allocated_storage
-  storage_type         = "gp3"
+  identifier            = "${lower(var.project_name)}-db-instance"
+  engine                = "postgres"
+  engine_version        = var.rds_pg_version
+  instance_class        = var.rds_instance_class
+  allocated_storage     = var.rds_allocated_storage
+  storage_type          = "gp3"
   max_allocated_storage = 100 # Allows for auto-scaling storage
 
   username = var.rds_master_username
@@ -52,8 +52,8 @@ resource "aws_db_instance" "nextcloud" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
 
-  multi_az                = var.rds_multi_az_enabled
-  backup_retention_period = 7
+  multi_az                 = var.rds_multi_az_enabled
+  backup_retention_period  = 7
   delete_automated_backups = true # For easy cleanup in a dev environment
   skip_final_snapshot      = true # For easy cleanup in a dev environment
 

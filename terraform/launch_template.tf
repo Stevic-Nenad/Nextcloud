@@ -1,6 +1,6 @@
 resource "aws_launch_template" "eks_nodes" {
-  name_prefix   = "${lower(var.project_name)}-lt-"
-  description   = "Launch template for EKS worker nodes with custom metadata options"
+  name_prefix = "${lower(var.project_name)}-lt-"
+  description = "Launch template for EKS worker nodes with custom metadata options"
 
   metadata_options {
     http_tokens                 = "required" # Enforce IMDSv2 for security
