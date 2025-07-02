@@ -966,6 +966,21 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#23`: Pipeline Status Badge im README anzeigen.
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+    *   **OIDC Authentifizierung für GitHub Actions zu AWS eingerichtet (User Story #20 ✓):**
+        *   Mittels Terraform wurde ein IAM OIDC Identity Provider in AWS erstellt, der eine Vertrauensstellung zu `token.actions.githubusercontent.com` herstellt.
+        *   Eine neue, dedizierte IAM-Rolle (`Nextcloud-cicd-role`) wurde via Terraform provisioniert.
+        *   Die Trust Policy dieser Rolle wurde präzise konfiguriert, um nur Workflows aus dem spezifischen Projekt-Repository (`Stevic-Nenad/Nextcloud`) und dem `main`-Branch zu autorisieren, die Rolle zu übernehmen (`sts:AssumeRoleWithWebIdentity`).
+        *   Eine granulare IAM-Policy mit den minimal notwendigen Berechtigungen (`eks:DescribeCluster`, `eks:AccessKubernetesApi`) wurde erstellt und an die Rolle angehängt, um das Least-Privilege-Prinzip zu wahren.
+        *   Die erfolgreiche Konfiguration wurde durch einen Test-Workflow verifiziert, der die Rolle erfolgreich übernehmen und `aws sts get-caller-identity` ausführen konnte.
+        *   Die Dokumentation des Setups wurde in Abschnitt [4.3.2](#432-authentifizierung-gegenüber-aws-oidc) ergänzt.
+    *   **GitHub Actions Workflow für Helm Chart Deployment erstellt (User Story #21 ✓):**
+        *   Ein Workflow in `.github/workflows/deploy.yml` wurde erstellt, der bei einem Push auf den `main`-Branch automatisch startet.
+        *   Der Workflow nutzt die in `#20` konfigurierte OIDC-Authentifizierung, um sich sicher bei AWS anzumelden und die `kubeconfig` für den EKS-Cluster zu konfigurieren.
+        *   Als Qualitätssicherungsschritt wird das Helm Chart mit `helm lint` überprüft; ein Fehler hierbei bricht die Pipeline ab.
+        *   Das Deployment erfolgt über `helm upgrade --install`, was sowohl Neuinstallationen als auch Updates abdeckt. Sensible Werte (DB-Passwort etc.) werden sicher über GitHub Secrets an den Befehl übergeben.
+        *   Das "Chicken-and-Egg"-Problem des Load-Balancer-Hostnamens wurde durch ein Skript im Workflow gelöst, das nach dem initialen Deployment auf den Hostnamen wartet und dann ein zweites `helm upgrade` mit dem korrekten Wert ausführt.
+        *   Nach dem erfolgreichen Deployment werden automatisch die `helm test`-Fälle ausgeführt, um die Funktionsfähigkeit der Anwendung zu verifizieren. Ein Fehlschlagen der Tests führt zum Scheitern der Pipeline.
+        *   Alle Schritte werden transparent im Workflow-Log protokolliert.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
@@ -988,13 +1003,6 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     * `Nextcloud#32`: Reflexionskapitel im README vervollständigen
 * **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 * **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-    *   **OIDC Authentifizierung für GitHub Actions zu AWS eingerichtet (User Story #20 ✓):**
-        *   Mittels Terraform wurde ein IAM OIDC Identity Provider in AWS erstellt, der eine Vertrauensstellung zu `token.actions.githubusercontent.com` herstellt.
-        *   Eine neue, dedizierte IAM-Rolle (`Nextcloud-cicd-role`) wurde via Terraform provisioniert.
-        *   Die Trust Policy dieser Rolle wurde präzise konfiguriert, um nur Workflows aus dem spezifischen Projekt-Repository (`Stevic-Nenad/Nextcloud`) und dem `main`-Branch zu autorisieren, die Rolle zu übernehmen (`sts:AssumeRoleWithWebIdentity`).
-        *   Eine granulare IAM-Policy mit den minimal notwendigen Berechtigungen (`eks:DescribeCluster`, `eks:AccessKubernetesApi`) wurde erstellt und an die Rolle angehängt, um das Least-Privilege-Prinzip zu wahren.
-        *   Die erfolgreiche Konfiguration wurde durch einen Test-Workflow verifiziert, der die Rolle erfolgreich übernehmen und `aws sts get-caller-identity` ausführen konnte.
-        *   Die Dokumentation des Setups wurde in Abschnitt [4.3.2](#432-authentifizierung-gegenüber-aws-oidc) ergänzt.
 * **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 * **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den
   Lernprozess)*
@@ -2080,9 +2088,21 @@ Dies führt den Benutzer durch die kritischen ersten Schritte, insbesondere das 
 
 *Die Automatisierung des Deployments.*
 
-#### 4.3.1 Workflow-Definition (`*.yml` Datei)
+#### 4.3.1 Workflow-Definition und Integrationsschritte
 
-* *(Trigger, Jobs, Steps – mit relevanten YAML-Snippets)*
+Die gesamte CI/CD-Logik ist in der Datei `.github/workflows/deploy.yml` definiert. Der Workflow wird bei jedem Push auf den `main`-Branch ausgelöst und führt die folgenden, logisch getrennten Jobs aus:
+
+1.  **Checkout & Authentifizierung:** Der Code wird ausgecheckt und die Pipeline authentifiziert sich sicher via OIDC bei AWS (siehe 4.3.2). Danach werden `kubectl` und `helm` für den Zugriff auf den EKS-Cluster konfiguriert.
+
+2.  **Validierung (Linting):** Vor jedem Deployment wird `helm lint` auf dem Chart ausgeführt. Dies stellt sicher, dass keine syntaktischen Fehler oder grobe Best-Practice-Verletzungen in das Repository gemerged wurden. Ein Fehlschlag in diesem Schritt bricht die Pipeline sofort ab.
+
+3.  **Deployment (Helm Upgrade):** Der Kernschritt verwendet `helm upgrade --install`. Dieser Befehl ist idempotent: Er installiert das Chart, falls es noch nicht existiert, oder aktualisiert ein bestehendes Release, falls Änderungen vorliegen.
+    *   Der `nextcloud`-Namespace wird bei Bedarf mit `--create-namespace` erstellt.
+    *   Die `--wait`-Flag sorgt dafür, dass die Pipeline wartet, bis die Kubernetes-Ressourcen (insbesondere der Nextcloud-Pod) einen "Ready"-Status erreichen.
+
+4.  **Konfigurations-Finalisierung (Load Balancer Hostname):** Um das Problem zu lösen, dass der externe Hostname des Load Balancers erst nach dem Deployment bekannt ist, enthält der Workflow ein Shell-Skript. Dieses Skript fragt in einer Schleife den `Service`-Status ab, bis der Hostname verfügbar ist, und führt dann ein zweites, schnelles `helm upgrade` aus, das nur den `nextcloud.host`-Wert setzt. Dies finalisiert die Konfiguration und stellt die korrekte Funktionsweise von Nextcloud sicher.
+
+5.  **Verifizierung (Helm Test):** Nach dem erfolgreichen Deployment führt die Pipeline `helm test` aus. Dies triggert den im Chart definierten Test-Pod, der die Erreichbarkeit des `/status.php`-Endpunkts überprüft. Schlägt dieser Test fehl, wird die gesamte Pipeline als fehlgeschlagen markiert.
 
 #### 4.3.2 Authentifizierung gegenüber AWS (OIDC)
 
@@ -2118,6 +2138,14 @@ Im GitHub Actions Workflow wird dann die Action `aws-actions/configure-aws-crede
 #### 4.3.3 Integrationsschritte (Terraform, Helm)
 
 #### 4.3.4 Secrets Management in der Pipeline
+
+In der CI/CD-Pipeline wird strikt darauf geachtet, keine sensiblen Daten im Klartext zu speichern. Die Umsetzung erfolgt auf zwei Ebenen:
+
+1.  **Authentifizierung (Keine Keys):** Die Authentifizierung bei AWS erfolgt ausschließlich über OIDC, wie in Abschnitt 4.3.2 beschrieben. Es werden keine langlebigen `AWS_ACCESS_KEY_ID` oder `AWS_SECRET_ACCESS_KEY` benötigt.
+2.  **Konfigurations-Secrets (GitHub Secrets):** Werte, die für die Konfiguration des Helm Charts benötigt werden (z.B. das RDS-Passwort), werden als "Repository Secrets" in den GitHub-Einstellungen hinterlegt.
+    *   Im Workflow werden diese Secrets über die `${{ secrets.SECRET_NAME }}`-Syntax ausgelesen.
+    *   Sie werden direkt und sicher an den `helm`-Befehl übergeben, z.B. `--set database.password="${{ secrets.RDS_DB_PASSWORD }}"`.
+    *   Dadurch erscheinen die Werte niemals im Klartext im Workflow-Code und werden in den GitHub Actions Logs automatisch durch `***` maskiert.
 
 ### 4.4 Installation und Inbetriebnahme der Gesamtlösung
 
