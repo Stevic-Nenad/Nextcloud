@@ -1058,8 +1058,10 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#26`: Systemarchitektur-Diagramm finalisieren.
     *   `Nextcloud#31`: Codebase finalisieren und kommentieren.
     *   `Nextcloud#32`: Reflexionskapitel im README vervollständigen.
-    *   `Nextcloud#30`: Präsentation und Demo für Kolloquium vorbereiten.
-*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+    *   *(Ticket `#30` wurde aus diesem Sprint entfernt und in den Backlog verschoben)*
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    *   **Erkenntnis:** Bei der Implementierung des `terraform destroy`-Jobs in der Pipeline wurde klar, dass die `iam_cicd.tf`-Policy erweitert werden muss, um Terraform das Recht zu geben, alle Ressourcen (EC2, RDS, EKS etc.) auch wieder zu löschen. Die ursprüngliche, sehr restriktive Policy reichte nicht aus.
+    *   **Lösung (Impediment behoben):** Die `data "aws_iam_policy_document" "github_actions_permissions"` wurde angepasst, um umfassendere, aber immer noch auf die Projektdienste bezogene Berechtigungen (`ec2:*`, `rds:*`, etc.) zu gewähren. Dies ermöglichte die erfolgreiche Ausführung von `terraform apply` und `destroy` aus der Pipeline heraus und wurde im Code kommentiert.
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
     *   **"Full Setup" GitHub Actions Workflow erstellt (User Story #41 ✓):**
         *   Der bestehende App-Deployment-Workflow wurde in einen wiederverwendbaren Workflow (`reusable-deploy-app.yml`) refaktorisiert, um Codeduplizierung zu vermeiden.
@@ -1097,8 +1099,12 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Die Helm-Chart-Templates (`_helpers.tpl`) und `values.yaml` wurden bereinigt und mit klareren Kommentaren zur besseren Verständlichkeit versehen.
         *   Die GitHub Actions Workflows, insbesondere der komplexe `lifecycle.yml`-Workflow, wurden stark kommentiert, um die Logik der Jobs, Abhängigkeiten und Fehlerbehandlungsstrategien zu erklären.
         *   Das obsolete Verzeichnis `/kubernetes-manifests` wurde entfernt, um technische Schulden abzubauen und das Repository sauber zu halten.
-*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
-*   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
+*   **Sprint Review (durchgeführt am 09.07.2025 – simuliert / Generalprobe für die Abgabe):**
+    *   **Präsentation des Sprint-Ziels & Inkrements:** Das Sprint-Ziel, ein *technisch komplettes* Produkt mit vollem Lifecycle-Management zu liefern, wurde vollständig erreicht. Die Demo fokussierte sich auf die neuen `setup`- und `destroy`-Workflows.
+    *   **Diskussion & Feedback (simuliert):** Die Stakeholder bestätigten, dass alle technischen Anforderungen erfüllt sind. Es wurde jedoch klar, dass durch die grossen Änderungen in diesem Sprint (Refactoring der Workflows) eine finale, umfassende Test- und Validierungsphase vor der Abgabe sinnvoll wäre. **Diese Erkenntnis führte zur Entscheidung, einen zusätzlichen, kurzen "Hardening"-Sprint einzulegen.**
+*   **Sprint Retrospektive (durchgeführt am 09.07.2025 – simuliert / Projektabschluss-Reflexion):**
+    *   **Diskussion:** Der Sprint war extrem produktiv, hat aber auch die Architektur der CI/CD-Pipeline stark verändert. Ein reiner "Push to Main"-Test reicht nicht mehr aus, um das Vertrauen in die Gesamtlösung zu 100% sicherzustellen.
+    *   **Abgeleitete Action Items für den nächsten Sprint:** Die wichtigste Aktion ist die Durchführung eines vollständigen Regressionstests von Anfang bis Ende und die Erstellung der finalen Präsentationsunterlagen auf Basis des nun stabilen, feature-complete Produkts.
 
 ---
 
