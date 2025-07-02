@@ -888,6 +888,12 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Ein `templates/configmap.yaml` wurde hinzugefügt, um das kritische `localhost`-Redirect-Problem zu lösen. Es generiert eine `autoconfig.php`, die dynamisch `trusted_domains` und `overwrite.cli.url` basierend auf einem Hostnamen in `values.yaml` setzt.
         *   Das `deployment.yaml`-Template wurde angepasst, um die neue ConfigMap als Volume zu mounten und die Logik zur Auswahl des korrekten Secrets (entweder das neu generierte oder ein existierendes) zu implementieren.
         *   Ein Sicherheitshinweis bezüglich der Passwortverwaltung wurde direkt in der `values.yaml` und im Haupt-README ergänzt.
+    *   **NOTES.txt für Post-Installationshinweise erstellt (User Story #18 ✓):**
+        *   Eine `templates/NOTES.txt`-Datei wurde im Helm Chart erstellt, um Benutzern nach der Installation sofortiges Feedback zu geben.
+        *   Die Notizen enthalten dynamische Logik, die je nach konfiguriertem `service.type` (LoadBalancer, NodePort, ClusterIP) unterschiedliche, kontext-spezifische Anweisungen zur Erreichbarkeit der Anwendung generiert.
+        *   Für den Standardfall (`LoadBalancer`) wird der Benutzer explizit angewiesen, wie er den externen Hostnamen abruft und den entscheidenden `helm upgrade`-Befehl ausführt, um die Konfiguration abzuschliessen.
+        *   Informationen zum Abrufen der Admin-Credentials werden ebenfalls dynamisch angezeigt, je nachdem, ob das Chart ein Secret erstellt hat oder ein existierendes verwendet wird.
+        *   Die Funktionalität wurde mit `helm install --dry-run` verifiziert.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
@@ -1976,6 +1982,40 @@ Das Helm Chart bietet die Möglichkeit, Passwörter für den Admin-Benutzer und 
 Für dieses Projekt wird diese Methode zur Vereinfachung verwendet. Für eine produktive Nutzung werden folgende Ansätze empfohlen:
 1.  **`--set` Flag bei der Installation:** Passwörter können zur Laufzeit übergeben werden: `helm install ... --set database.password=MEIN_GEHEIMES_PASSWORT`.
 2.  **Externe Secrets-Verwaltung:** Die sicherste Methode ist, das Secret manuell oder über einen anderen Prozess (z.B. mit dem AWS Secrets Manager & CSI Driver) zu erstellen und dem Chart via `database.existingSecret` nur den Namen des Secrets zu übergeben.
+
+#### 4.2.5 Post-Installation Notes (NOTES.txt)
+
+Um dem Benutzer des Charts eine bestmögliche Erfahrung zu bieten, enthält das Chart eine `templates/NOTES.txt`-Datei. Diese wird nach einer erfolgreichen `helm install` oder `helm upgrade` Operation in der Konsole angezeigt und gibt kontext-spezifische Anweisungen.
+
+Die Notizen sind dynamisch und passen sich der Konfiguration in `values.yaml` an. Für den Standardfall mit einem `Service` vom Typ `LoadBalancer` sieht die Ausgabe beispielsweise wie folgt aus:
+
+<pre>
+Nextcloud has been deployed. Congratulations!
+Your release is named: nextcloud
+
+**IMPORTANT NEXT STEPS:**
+
+1. **Get the Nextcloud URL:**
+
+   The Load Balancer is being created... Run the following command to get the EXTERNAL-IP:
+
+   kubectl get svc --namespace default -w nextcloud
+
+2. **Update Nextcloud Host Configuration:**
+
+   Once you have the external hostname..., you MUST upgrade the Helm release...
+
+   helm upgrade --namespace default nextcloud . \
+     --set nextcloud.host=YOUR_LOADBALANCER_HOSTNAME
+
+   ...
+
+**Admin Credentials:**
+   Username: admin
+   Password: SuperSecurePassword!
+</pre>
+
+Dies führt den Benutzer durch die kritischen ersten Schritte, insbesondere das Abrufen des dynamisch erstellten Load-Balancer-Hostnamens und das anschliessende `helm upgrade`, um die Nextcloud-Konfiguration zu finalisieren.
 
 ### 4.3 CI/CD Pipeline mit GitHub Actions
 
