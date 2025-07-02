@@ -1,5 +1,3 @@
-nameOverride: "nextcloud"
-fullnameOverride: "nextcloud"
 replicaCount: 1
 
 image:
@@ -16,4 +14,23 @@ persistence:
   storageClassName: "ebs-sc"
   size: 10Gi
 
-existingSecretName: "nextcloud-db-secret"
+nextcloud:
+  host: ""
+  admin:
+    user: "admin"
+    # It is strongly recommended to override this password via --set or external secrets.
+    # Storing plain-text passwords in values.yaml is not a secure practice.
+    password: "SuperSecurePassword!"
+
+database:
+  # If you want the chart to create a secret for you, set enabled to true.
+  enabled: true
+  # If using an existing secret, provide its name here. `enabled` should be false if you use this.
+  existingSecret: ""
+
+  # Values for the secret if it is created by the chart.
+  # It is strongly recommended to override these via --set or external secrets.
+  user: "nextcloudadmin"
+  password: "AnotherSuperSecurePassword!"
+  database: "nextclouddb"
+  host: "your-rds-or-db-host.com"
