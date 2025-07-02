@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-config
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+data:
+  # This injects a custom configuration file into Nextcloud.
+  # It is crucial for setting the trusted domain and the overwrite URL,
+  # which prevents being redirected to the internal Pod IP or localhost.
+  nextcloud-config.php: |
+    <?php
+    $CONFIG = array (
+      'overwrite.cli.url' => 'http://{{ .Values.nextcloud.host }}',
+      'overwritehost' => '{{ .Values.nextcloud.host }}',
+      'trusted_domains' =>
+      array (
+        0 => 'localhost',
+        1 => '{{ .Release.Name }}-{{ .Chart.Name }}',
+        2 => '{{ .Values.nextcloud.host }}',
+      ),
+    );
