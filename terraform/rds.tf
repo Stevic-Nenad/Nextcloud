@@ -11,8 +11,10 @@ resource "aws_db_subnet_group" "nextcloud_rds" {
 }
 
 resource "aws_db_parameter_group" "nextcloud_postgres" {
-  name   = "${lower(var.project_name)}-postgres-${replace(var.rds_pg_version, ".", "")}"
-  family = "postgres${split(".", var.rds_pg_version)[0]}" # <--- FIX APPLIED HERE
+  name = "${lower(var.project_name)}-postgres-${replace(var.rds_pg_version, ".", "")}"
+  # The family parameter requires the major version of postgres, e.g., "postgres16".
+  # This splits the version string "16.2" at the dot and takes the first part.
+  family = "postgres${split(".", var.rds_pg_version)[0]}"
 
   parameter {
     name  = "client_encoding"
