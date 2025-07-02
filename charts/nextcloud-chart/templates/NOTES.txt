@@ -1,0 +1,77 @@
+{{- /*
+This NOTES.txt file is displayed to the user after a successful `helm install` or `helm upgrade`.
+*/}}
+{{- $fullName := include "nextcloud.fullname" . -}}
+{{- $servicePort := .Values.service.port -}}
+{{- $serviceType := .Values.service.type -}}
+
+Nextcloud has been deployed. Congratulations!
+
+Your release is named: {{ .Release.Name }}
+
+---------------------------------------------------------------------------
+  ██╗  ██╗███████╗██╗  ██╗████████╗ ██╗ ██████╗ ██╗  ██╗
+  ██║  ██║██╔════╝╚██╗██╔╝╚══██╔══╝███║██╔════╝ ██║  ██║
+  ███████║█████╗   ╚███╔╝    ██║   ╚██║██║  ███╗███████║
+  ██╔══██║██╔══╝   ██╔██╗    ██║    ██║██║   ██║██╔══██║
+  ██║  ██║███████╗██╔╝ ██╗   ██║    ██║╚██████╔╝██║  ██║
+  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+---------------------------------------------------------------------------
+
+**IMPORTANT NEXT STEPS:**
+
+{{- if eq $serviceType "LoadBalancer" }}
+1. **Get the Nextcloud URL:**
+
+   The Load Balancer is being created by your cloud provider. It may take a few minutes.
+   Run the following command to get the EXTERNAL-IP (it will change from <pending> to a hostname):
+
+   kubectl get svc --namespace {{ .Release.Namespace }} -w {{ $fullName }}
+
+2. **Update Nextcloud Host Configuration:**
+
+   Once you have the external hostname from step 1, you MUST upgrade the Helm release
+   so Nextcloud knows its own address. This prevents redirect errors.
+
+   Replace `YOUR_LOADBALANCER_HOSTNAME` with the address from step 1:
+
+   helm upgrade --namespace {{ .Release.Namespace }} {{ .Release.Name }} . \
+     --set nextcloud.host=YOUR_LOADBALANCER_HOSTNAME
+
+   After the upgrade, you can access your Nextcloud instance at:
+   http://YOUR_LOADBALANCER_HOSTNAME
+
+{{- else if eq $serviceType "NodePort" }}
+1. **Get the Nextcloud URL:**
+
+   Get the IP address of any node in your cluster:
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+
+   Your Nextcloud instance is accessible at:
+   http://$NODE_IP:{{ .Values.service.nodePort }}
+
+   **NOTE:** You still need to run `helm upgrade` with the correct `nextcloud.host` value (e.g., http://$NODE_IP) to ensure Nextcloud works correctly.
+
+{{- else if eq $serviceType "ClusterIP" }}
+1. **Accessing Nextcloud:**
+
+   Your service is of type `ClusterIP`, so it is not exposed outside the cluster by default.
+   You can access it using `kubectl port-forward`:
+
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ $fullName }} 8080:{{ $servicePort }}
+
+   Then open your browser to http://127.0.0.1:8080
+
+{{- end }}
+
+**Admin Credentials:**
+
+{{- if not .Values.database.existingSecret }}
+   Username: {{ .Values.nextcloud.admin.user }}
+   Password: {{ .Values.nextcloud.admin.password }}
+
+   **WARNING:** This is the default password from your values.yaml. Please change it and use a more secure method for production environments.
+{{- else }}
+   The admin credentials are held in the existing secret you provided: '{{ .Values.database.existingSecret }}'.
+   Please retrieve them from there.
+{{- end }}
