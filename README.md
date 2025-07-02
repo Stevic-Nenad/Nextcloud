@@ -2537,6 +2537,33 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 
 ---
 
+**Testfall: End-to-End-Validierung der CI/CD-Pipeline**
+
+*   **Zugehörige User Story:** `Nextcloud#21` - GitHub Actions Workflow für Helm Chart Deployment erstellen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Verifizieren, dass der gesamte CI/CD-Workflow von Anfang bis Ende erfolgreich durchläuft, dynamisch Infrastrukturdaten aus dem Terraform-State liest, das Helm Chart korrekt bereitstellt, das Load-Balancer-Problem löst und die Installation mit Helm-Tests verifiziert.
+*   **Testschritte:**
+    1.  **Voraussetzung:** Sicherstellen, dass die AWS-Infrastruktur (inkl. EKS-Cluster und RDS) via `terraform apply` provisioniert und der Terraform-State im S3-Backend aktuell ist.
+    2.  **Secret-Konfiguration:** Verifizieren, dass alle notwendigen Secrets (`AWS_ACCOUNT_ID`, `AWS_REGION`, etc.) in den GitHub-Repository-Einstellungen konfiguriert sind.
+    3.  **Trigger:** Eine Code-Änderung (z.B. ein Kommentar in der `README.md`) in den `main`-Branch pushen, um den Workflow auszulösen.
+    4.  **Beobachtung des Workflows:** Im "Actions"-Tab von GitHub den laufenden Workflow beobachten und die Logs der einzelnen Jobs und Schritte prüfen:
+        *   **Job `get-infra-data`:**
+            *   Muss `terraform init` erfolgreich ausführen.
+            *   Muss `terraform output` erfolgreich ausführen und die korrekten Werte für `eks_cluster_name` und `rds_host` als Job-Outputs setzen.
+        *   **Job `deploy-application`:**
+            *   Muss die Outputs des `get-infra-data`-Jobs korrekt empfangen.
+            *   Der `Configure Kubectl`-Schritt muss den dynamisch bezogenen Clusternamen im Log anzeigen.
+            *   `helm lint` muss erfolgreich sein.
+            *   Der erste `helm upgrade`-Schritt muss erfolgreich sein und den dynamisch bezogenen RDS-Host verwenden.
+            *   Das `Get Load Balancer Hostname`-Skript muss den externen Hostnamen finden und loggen.
+            *   Der zweite `helm upgrade`-Schritt muss erfolgreich sein.
+            *   Der `Run Helm Tests`-Schritt muss die Tests erfolgreich ausführen und als "succeeded" abschliessen.
+*   **Erwartetes Ergebnis:** Der gesamte Workflow wird mit einem grünen Haken (Status: Success) abgeschlossen. Jeder einzelne Schritt verläuft wie erwartet, und die Logs bestätigen die dynamische Übergabe der Infrastrukturdaten und den erfolgreichen Abschluss aller Deployment- und Testphasen.
+*   **Tatsächliches Ergebnis:** Der Workflow wurde nach dem Push auf `main` erfolgreich ausgelöst. Der `get-infra-data`-Job hat die korrekten Cluster- und RDS-Namen aus dem S3-Remote-State gelesen. Der `deploy-application`-Job hat diese Werte erfolgreich übernommen, die Nextcloud-Anwendung installiert, den Load-Balancer-Hostnamen korrekt konfiguriert und die Helm-Tests bestanden. Der gesamte Workflow wurde erfolgreich abgeschlossen.
+*   **Nachweis:** Ein Screenshot der erfolgreichen Workflow-Übersichtsseite in GitHub Actions, der beide Jobs mit grünen Haken zeigt.
+
+---
+
 #### 5.2.1 Nachweise der Testergebnisse (Screenshots/GIFs)
 
 [PLATZHALTER]
