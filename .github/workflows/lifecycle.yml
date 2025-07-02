@@ -1,10 +1,13 @@
+# This workflow orchestrates the entire lifecycle of the environment.
+# It is triggered manually, providing a "one-click" way to build or destroy everything.
+
 name: Full Environment Lifecycle
 
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action to perform: "setup" to build infra and deploy, "destroy" to tear down.'
+        description: 'Action to perform: "setup" to build infra and deploy, or "destroy" to tear down.'
         required: true
         type: choice
         options:
@@ -12,12 +15,15 @@ on:
           - destroy
 
 jobs:
-  # --- SETUP PATH ---
+  # ==================================================================================
+  # == SETUP PATH: Triggered when 'setup' is selected                             ==
+  # ==================================================================================
   terraform-apply:
-    name: "Terraform Apply"
+    name: "Setup: 1. Terraform Apply"
     if: github.event.inputs.action == 'setup'
     runs-on: ubuntu-latest
     outputs:
+      # These outputs are passed to subsequent jobs.
       eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
       rds_host: ${{ steps.tf_outputs.outputs.rds_host }}
 
@@ -25,7 +31,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
@@ -40,7 +46,7 @@ jobs:
       - name: Terraform Apply
         run: terraform -chdir=./terraform apply -auto-approve
 
-      - name: Get Terraform Outputs
+      - name: Get Terraform Outputs for next job
         id: tf_outputs
         run: |
           cd ./terraform
@@ -48,89 +54,79 @@ jobs:
           echo "rds_host=$(terraform output -raw rds_instance_endpoint)" >> $GITHUB_OUTPUT
 
   deploy-application:
-    name: "Deploy Application"
+    name: "Setup: 2. Deploy Application"
     if: github.event.inputs.action == 'setup'
     needs: terraform-apply # Depends on the successful infrastructure creation
-
-    # This is where we call our reusable workflow
     uses: ./.github/workflows/reusable-deploy-app.yml@main
     with:
-      # Pass the outputs from the terraform job as inputs to the reusable workflow
       EKS_CLUSTER_NAME: ${{ needs.terraform-apply.outputs.eks_cluster_name }}
       RDS_DB_HOST: ${{ needs.terraform-apply.outputs.rds_host }}
-    secrets:
-      # Pass down the required secrets
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      CICD_ROLE_NAME: ${{ secrets.CICD_ROLE_NAME }}
-      RDS_DB_PASSWORD: ${{ secrets.RDS_DB_PASSWORD }}
-      NEXTCLOUD_ADMIN_PASSWORD: ${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}
+    secrets: inherit # Pass all secrets down to the reusable workflow
 
-get-destroy-data:
-  name: "Get Data for Teardown"
-  if: github.event.inputs.action == 'destroy'
-  runs-on: ubuntu-latest
-  outputs:
-    eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
-        aws-region: ${{ secrets.AWS_REGION }}
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-    - name: Terraform Init
-      run: terraform -chdir=./terraform init
-    - name: Get Terraform Outputs
-      id: tf_outputs
-      run: |
-        cd ./terraform
-        # Use '|| true' to prevent failure if the output (and thus infra) doesn't exist
-        echo "eks_cluster_name=$(terraform output -raw eks_cluster_name || true)" >> $GITHUB_OUTPUT
+  # ==================================================================================
+  # == DESTROY PATH: Triggered when 'destroy' is selected                           ==
+  # ==================================================================================
+  get-destroy-data:
+    name: "Teardown: 1. Get Data"
+    if: github.event.inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    outputs:
+      eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Terraform Init
+        run: terraform -chdir=./terraform init
+      - name: Get Terraform Outputs
+        id: tf_outputs
+        run: |
+          cd ./terraform
+          # '|| true' ensures this step succeeds even if the infra doesn't exist, making the job fault-tolerant.
+          echo "eks_cluster_name=$(terraform output -raw eks_cluster_name || true)" >> $GITHUB_OUTPUT
 
   helm-uninstall:
-    name: "Uninstall Application"
+    name: "Teardown: 2. Uninstall Application"
     if: github.event.inputs.action == 'destroy'
     runs-on: ubuntu-latest
     needs: get-destroy-data
     steps:
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Configure Kubectl
-        # Use a condition to only run this if the cluster name was found
         if: needs.get-destroy-data.outputs.eks_cluster_name != ''
         run: |
           aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ needs.get-destroy-data.outputs.eks_cluster_name }}
           echo "Kubeconfig configured for cluster: ${{ needs.get-destroy-data.outputs.eks_cluster_name }}"
       - name: Setup Helm
         uses: azure/setup-helm@v4
-        with:
-          version: 'v3.15.2'
       - name: Uninstall Helm Release
-        # '|| true' makes this step succeed even if the release doesn't exist.
         if: needs.get-destroy-data.outputs.eks_cluster_name != ''
         run: |
+          # '|| true' ensures this step succeeds even if the Helm release is already gone.
           helm uninstall nextcloud -n nextcloud || true
-          # Wait a bit to give the Load Balancer time to be de-registered by AWS.
-          # This is a common pattern to avoid dependency errors in terraform destroy.
+          # IMPORTANT: Wait to allow AWS to de-register the Load Balancer before Terraform tries to delete its dependencies.
           echo "Waiting 60 seconds for Load Balancer to de-register..."
           sleep 60
 
   terraform-destroy:
-    name: "Terraform Destroy"
+    name: "Teardown: 3. Terraform Destroy"
     if: github.event.inputs.action == 'destroy'
     runs-on: ubuntu-latest
-    needs: helm-uninstall # Depends on the successful (or skipped) uninstall
+    needs: helm-uninstall
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
