@@ -1068,6 +1068,12 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
             1.  `terraform-apply`: Erstellt die gesamte AWS-Infrastruktur mit `terraform apply -auto-approve` und gibt die erstellten Ressourcen-Namen (Cluster, RDS-Host) als Output weiter.
             2.  `deploy-application`: Ruft den wiederverwendbaren Workflow auf und übergibt ihm die dynamisch erstellten Infrastrukturdaten sowie die notwendigen Secrets, um die Nextcloud-Anwendung auf der frisch erstellten Infrastruktur zu deployen.
         *   Der Workflow wurde erfolgreich getestet und provisioniert die gesamte Umgebung auf Knopfdruck.
+    *   **"Full Teardown" GitHub Actions Workflow erstellt (User Story #42 ✓):**
+        *   Der bestehende `lifecycle.yml`-Workflow wurde um eine `destroy`-Option erweitert.
+        *   Der `destroy`-Pfad besteht aus drei Jobs: einem, der die Infrastrukturdaten abruft, einem, der die Helm-Anwendung deinstalliert, und einem, der die AWS-Infrastruktur zerstört.
+        *   Der `helm-uninstall`-Job ist fehlertolerant konfiguriert und schlägt nicht fehl, wenn das Helm-Release bereits entfernt wurde. Ein `sleep`-Befehl wurde hinzugefügt, um saubere Abhängigkeitsauflösungen in AWS zu gewährleisten.
+        *   Der `terraform-destroy`-Job führt `terraform destroy -auto-approve` aus, um alle via Terraform verwalteten Ressourcen vollständig zu entfernen.
+        *   Der Workflow wurde erfolgreich getestet und entfernt die gesamte Umgebung auf Knopfdruck, was die Kostenkontrolle und Reproduzierbarkeit des Projekts sicherstellt.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
 
@@ -2659,6 +2665,25 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 *   **Erwartetes Ergebnis:** Beide Jobs laufen erfolgreich durch. Der gesamte Workflow wird mit einem grünen Haken abgeschlossen. Eine Überprüfung in der AWS-Konsole zeigt die neu erstellte Infrastruktur, und die Nextcloud-Instanz ist über ihren Load-Balancer-Endpunkt erreichbar.
 *   **Tatsächliches Ergebnis:** Der Workflow wurde erfolgreich ausgeführt. Der `terraform-apply`-Job erstellte alle AWS-Ressourcen fehlerfrei. Der `deploy-application`-Job übernahm die Outputs korrekt und installierte und verifizierte die Nextcloud-Anwendung.
 *   **Nachweis:** Ein Screenshot der erfolgreichen `lifecycle.yml`-Workflow-Ausführung (für `setup`) in der GitHub Actions UI.
+
+---
+
+**Testfall: Validierung des "Full Teardown"-Lifecycle-Workflows**
+*   **Zugehörige User Story:** `Nextcloud#42` - "Full Teardown" GitHub Actions Workflow erstellen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass der manuelle `destroy`-Workflow die gesamte Anwendung und AWS-Infrastruktur sauber, vollständig und fehlertolerant entfernen kann.
+*   **Testschritte:**
+    1.  **Voraussetzung:** Eine vollständige Projekt-Infrastruktur und Anwendungs-Deployment existieren (erstellt durch den `setup`-Workflow).
+    2.  In der GitHub Actions UI den "Full Environment Lifecycle"-Workflow auswählen.
+    3.  Den Workflow manuell mit der ausgewählten Option `destroy` starten.
+    4.  Den Fortschritt der Jobs (`get-destroy-data`, `helm-uninstall`, `terraform-destroy`) beobachten.
+    5.  Die Logs des `helm-uninstall`-Jobs überprüfen, um die erfolgreiche Deinstallation des Helm-Releases zu bestätigen.
+    6.  Die Logs des `terraform-destroy`-Jobs überprüfen, um die erfolgreiche Zerstörung der AWS-Ressourcen zu bestätigen.
+    7.  Nach Abschluss des Workflows in der AWS Management Console überprüfen, ob die Kernressourcen (VPC, EKS-Cluster, EC2-Nodes, RDS-Instanz) nicht mehr existieren.
+    8.  **(Optionaler Fehlertoleranz-Test):** Den `destroy`-Workflow erneut ausführen.
+*   **Erwartetes Ergebnis:** Alle Jobs laufen erfolgreich durch. Die Überprüfung in der AWS-Konsole bestätigt, dass alle Ressourcen entfernt wurden. Der optionale zweite Lauf schlägt nicht fehl, sondern überspringt die Schritte, da keine Ressourcen mehr vorhanden sind.
+*   **Tatsächliches Ergebnis:** Der `destroy`-Workflow lief wie erwartet durch, entfernte zuerst die Helm-Anwendung und zerstörte danach die gesamte AWS-Infrastruktur. Die AWS-Konsole war danach wieder leer (bezogen auf die Projekt-Ressourcen).
+*   **Nachweis:** Ein Screenshot der erfolgreichen `lifecycle.yml`-Workflow-Ausführung (für `destroy`) in der GitHub Actions UI.
 
 ---
 
