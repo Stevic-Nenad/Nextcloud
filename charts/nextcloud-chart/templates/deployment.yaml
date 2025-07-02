@@ -23,39 +23,50 @@ spec:
               containerPort: 80
               protocol: TCP
           env:
+            # Determine which secret to use. If an existing one is provided, use it.
+            # Otherwise, use the one created by this chart.
+            {{- $secretName := "" }}
+            {{- if .Values.database.existingSecret }}
+            {{- $secretName = .Values.database.existingSecret }}
+            {{- else }}
+            {{- $secretName = printf "%s-db" (include "nextcloud.fullname" .) }}
+            {{- end }}
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: POSTGRES_HOST
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: POSTGRES_DB
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: POSTGRES_PASSWORD
             - name: NEXTCLOUD_ADMIN_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: NEXTCLOUD_ADMIN_USER
             - name: NEXTCLOUD_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.existingSecretName }}
+                  name: {{ $secretName }}
                   key: NEXTCLOUD_ADMIN_PASSWORD
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
+            - name: nextcloud-config
+              mountPath: /var/www/html/config/autoconfig.php
+              subPath: nextcloud-config.php
       volumes:
         - name: nextcloud-data
           {{- if .Values.persistence.enabled }}
@@ -64,3 +75,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: nextcloud-config
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-config
