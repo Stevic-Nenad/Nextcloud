@@ -1018,26 +1018,51 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
 
 ---
 
-#### **Sprint 6: Finalisierung, Testing & Projektabschluss**
+#### **Sprint 6: Finalisierung & Vollständiges Lifecycle-Management**
 
-* **Dauer:** ca. 04. Juli 2025 - 09. Juli 2025 *(Beispiel, an dein Gantt anpassen, bis zur Abgabe)*
-* **Zugehöriges Epic:** `EPIC-ABSCHLUSS`
-* **Vorläufiges Sprint-Ziel:** Abschluss aller Entwicklungsarbeiten, finales Testen der Gesamtlösung, Finalisierung der
-  Projektdokumentation (`README.md`) und Vorbereitung der Abschlusspräsentation.
-* **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    * `Nextcloud#25`: Checkliste für manuelle Regressionstests erstellen
-    * `Nextcloud#26`: Systemarchitektur-Diagramm erstellen und pflegen (Finalisierung)
-    * `Nextcloud#27`: Sprint-Zusammenfassungen im README pflegen (laufend)
-    * `Nextcloud#28`: Installations- und Inbetriebnahme-Anleitung erstellen (Finalisierung)
-    * `Nextcloud#29`: Offene Issues vor Abgabe triagieren
-    * `Nextcloud#30`: Präsentation und Demo für Kolloquium vorbereiten
-    * `Nextcloud#31`: Codebase finalisieren und kommentieren
-    * `Nextcloud#32`: Reflexionskapitel im README vervollständigen
-* **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-* **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
-* **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den
-  Lernprozess)*
+*   **Dauer:** ca. 04. Juli 2025 - 09. Juli 2025
+*   **Zugehöriges Epic:** `EPIC-ABSCHLUSS`, `EPIC-CICD`
+*   **Sprint Planning (durchgeführt am 03.07.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Kontext & Ziel des Plannings:** Das Projekt hat mit einer funktionierenden CI/CD-Pipeline für das Anwendungs-Deployment einen riesigen Meilenstein erreicht. Für den finalen Sprint wird der Scope erweitert, um den gesamten Infrastruktur-Lebenszyklus zu automatisieren. Dies soll die Mächtigkeit der Lösung demonstrieren und eine vollständige End-to-End-Automatisierung von der Erstellung bis zur Zerstörung der Umgebung zeigen.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):**
+        *   Der Product Owner betonte, dass für eine eindrucksvolle Abschlusspräsentation und den Nachweis der vollständigen Beherrschung der Technologien ein "One-Click"-Ansatz für die gesamte Umgebung ideal wäre. Anstatt nur die App zu deployen, soll die Pipeline auch die gesamte AWS-Infrastruktur auf Knopfdruck erstellen und wieder sicher entfernen können.
+        *   Dies demonstriert nicht nur die CI/CD-Fähigkeiten, sondern auch die Mächtigkeit von Infrastructure as Code mit Terraform.
+        *   Gemeinsam wurde das folgende, sehr ambitionierte Sprint-Ziel für den Abschluss formuliert:
+            *   *"Das Projekt wird mit der Implementierung von zwei neuen, manuell triggerbaren GitHub Actions Workflows abgeschlossen: Ein 'Full Setup'-Workflow, der die gesamte AWS-Infrastruktur mit Terraform provisioniert und anschliessend die Nextcloud-Anwendung deployt, sowie ein 'Full Teardown'-Workflow, der die Anwendung sauber deinstalliert und danach die gesamte Infrastruktur wieder zerstört. Die finale Projektdokumentation, inklusive der neuen Workflows, der Systemarchitektur und einer umfassenden Reflexion, wird fertiggestellt."*
+    *   **Diskussion – Das "Was" (Auswahl der Sprint Backlog Items):**
+        *   Um dieses Ziel zu erreichen, wurden zwei **neue, hoch-priorisierte User Stories** erstellt:
+            *   `Nextcloud#41`: **(NEU)** Einen "Full Setup" GitHub Actions Workflow erstellen, der `terraform apply` und das Helm-Deployment kombiniert.
+            *   `Nextcloud#42`: **(NEU)** Einen "Full Teardown" GitHub Actions Workflow erstellen, der `helm uninstall` und `terraform destroy` kombiniert.
+        *   Die bestehenden Finalisierungs-Tickets sind weiterhin wichtig, werden aber um die neuen Features herum geplant:
+            *   `Nextcloud#28` (Installations-Anleitung): Wird überarbeitet, um die Nutzung der neuen Lifecycle-Workflows zu beschreiben.
+            *   `Nextcloud#26` (Architektur-Diagramm): Muss aktualisiert werden, um die neuen Workflows darzustellen.
+            *   `Nextcloud#31` (Code finalisieren): Beinhaltet jetzt auch das Kommentieren der neuen Workflow-Dateien.
+            *   `Nextcloud#30` & `#32` (Präsentation & Reflexion): Bleiben als letzte, entscheidende Schritte für die Abgabe.
+    *   **Diskussion – Das "Wie" (Grobe Planung der Umsetzung):**
+        1.  **Ein neuer Workflow für alles:** Anstatt mehrerer neuer Dateien wird ein einziger, neuer Workflow `.github/workflows/lifecycle.yml` erstellt. Dieser wird **ausschließlich manuell triggerbar** sein (`workflow_dispatch`).
+        2.  **Workflow Inputs:** Der `lifecycle.yml`-Workflow wird einen `input`-Parameter vom Typ `choice` haben, der es dem Benutzer in der GitHub-UI erlaubt, zwischen den Aktionen `setup` und `destroy` zu wählen.
+        3.  **Job-Struktur für `setup`:**
+            *   Ein Job `terraform_apply` führt `terraform init` und `terraform apply -auto-approve` aus.
+            *   Ein Job `deploy_application` wird danach ausgeführt (`needs: terraform_apply`). Dieser Job wird den bestehenden `deploy.yml`-Workflow als **wiederverwendbaren Workflow (`workflow_call`)** aufrufen. Das vermeidet Codeduplizierung und hält die Logik sauber getrennt.
+        4.  **Job-Struktur für `destroy`:**
+            *   Ein Job `helm_uninstall` deinstalliert die Anwendung.
+            *   Ein Job `terraform_destroy` wird danach ausgeführt und zerstört die gesamte Infrastruktur mit `terraform destroy -auto-approve`.
+        5.  **Dokumentation:** Die `README.md` wird um eine Anleitung zur Nutzung des neuen Lifecycle-Workflows erweitert. Das Architekturdiagramm wird ebenfalls aktualisiert.
+*   **Sprint-Ziel (committet für Sprint 6):**
+    *   "Das Projekt wird mit der Implementierung von zwei neuen, manuell triggerbaren GitHub Actions Workflows abgeschlossen: Ein 'Full Setup'-Workflow, der die gesamte AWS-Infrastruktur mit Terraform provisioniert und anschliessend die Nextcloud-Anwendung deployt, sowie ein 'Full Teardown'-Workflow, der die Anwendung sauber deinstalliert und danach die gesamte Infrastruktur wieder zerstört. Die finale Projektdokumentation, inklusive der neuen Workflows, der Systemarchitektur und einer umfassenden Reflexion, wird fertiggestellt."
+*   **Sprint Backlog (Committete User Stories für Sprint 6):**
+    *   `Nextcloud#41`: **(NEU)** "Full Setup" GitHub Actions Workflow erstellen (`terraform apply` & deploy).
+    *   `Nextcloud#42`: **(NEU)** "Full Teardown" GitHub Actions Workflow erstellen (`helm uninstall` & `terraform destroy`).
+    *   `Nextcloud#28`: Installations- und Inbetriebnahme-Anleitung finalisieren (inkl. der neuen Workflows).
+    *   `Nextcloud#26`: Systemarchitektur-Diagramm finalisieren.
+    *   `Nextcloud#31`: Codebase finalisieren und kommentieren.
+    *   `Nextcloud#32`: Reflexionskapitel im README vervollständigen.
+    *   `Nextcloud#30`: Präsentation und Demo für Kolloquium vorbereiten.
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
+*   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
 
 ---
 
