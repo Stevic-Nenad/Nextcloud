@@ -2,6 +2,8 @@
 
 ![Header Bild](assets/header.png)
 
+[![Deploy Nextcloud to EKS](https://github.com/Stevic-Nenad/Nextcloud/actions/workflows/deploy.yml/badge.svg?branch=master)](https://github.com/Stevic-Nenad/Nextcloud/actions/workflows/deploy.yml)
+
 **Student:** Nenad Stevic<br>
 **TBZ Lehrgang dipl. Informatiker/in HF - 3. Semester**<br>
 **Abgabedatum:** 09.07.2025
@@ -981,6 +983,10 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Das "Chicken-and-Egg"-Problem des Load-Balancer-Hostnamens wurde durch ein Skript im Workflow gelöst, das nach dem initialen Deployment auf den Hostnamen wartet und dann ein zweites `helm upgrade` mit dem korrekten Wert ausführt.
         *   Nach dem erfolgreichen Deployment werden automatisch die `helm test`-Fälle ausgeführt, um die Funktionsfähigkeit der Anwendung zu verifizieren. Ein Fehlschlagen der Tests führt zum Scheitern der Pipeline.
         *   Alle Schritte werden transparent im Workflow-Log protokolliert.
+    *   **Pipeline Status Badge im README angezeigt (User Story #23 ✓):**
+        *   Das offizielle GitHub Actions Status-Badge für den `deploy.yml`-Workflow wurde generiert.
+        *   Der Markdown-Code für das Badge wurde an einer prominenten Stelle am Anfang der `README.md`-Datei eingefügt.
+        *   Das Badge zeigt erfolgreich den Live-Status (z.B. "passing") der letzten Pipeline-Ausführung auf dem `main`-Branch an und ist direkt mit der Actions-Seite des Repositories verlinkt.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
@@ -2561,6 +2567,23 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 *   **Erwartetes Ergebnis:** Der gesamte Workflow wird mit einem grünen Haken (Status: Success) abgeschlossen. Jeder einzelne Schritt verläuft wie erwartet, und die Logs bestätigen die dynamische Übergabe der Infrastrukturdaten und den erfolgreichen Abschluss aller Deployment- und Testphasen.
 *   **Tatsächliches Ergebnis:** Der Workflow wurde nach dem Push auf `main` erfolgreich ausgelöst. Der `get-infra-data`-Job hat die korrekten Cluster- und RDS-Namen aus dem S3-Remote-State gelesen. Der `deploy-application`-Job hat diese Werte erfolgreich übernommen, die Nextcloud-Anwendung installiert, den Load-Balancer-Hostnamen korrekt konfiguriert und die Helm-Tests bestanden. Der gesamte Workflow wurde erfolgreich abgeschlossen.
 *   **Nachweis:** Ein Screenshot der erfolgreichen Workflow-Übersichtsseite in GitHub Actions, der beide Jobs mit grünen Haken zeigt.
+
+---
+
+**Testfall: Validierung des Pipeline Status-Badges**
+*   **Zugehörige User Story:** `Nextcloud#23` - Pipeline Status Badge im README anzeigen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass das Status-Badge korrekt im `README.md` angezeigt wird, den Live-Status der Pipeline widerspiegelt und korrekt verlinkt ist.
+*   **Testschritte:**
+    1.  Den Markdown-Code für das Status-Badge aus der GitHub Actions UI für den `deploy.yml`-Workflow kopieren.
+    2.  Den Code in die `README.md`-Datei einfügen und die Änderung in den `main`-Branch pushen.
+    3.  Warten, bis der dadurch ausgelöste Workflow abgeschlossen ist.
+    4.  Die Hauptseite des GitHub-Repositorys im Browser neu laden.
+    5.  Visuell überprüfen, ob das Badge angezeigt wird und den korrekten Status (z.B. "passing") anzeigt.
+    6.  Auf das Badge klicken.
+*   **Erwartetes Ergebnis:** Das Badge ist sichtbar und zeigt den korrekten Status. Ein Klick auf das Badge leitet den Benutzer auf die Übersichtsseite der Workflow-Ausführungen für `deploy.yml` weiter.
+*   **Tatsächliches Ergebnis:** Alle Schritte waren erfolgreich. Das Badge wurde korrekt angezeigt und der Link funktionierte wie erwartet.
+*   **Nachweis:** Die `README.md`-Datei selbst im Repository dient als permanenter, live-aktualisierter Nachweis.
 
 ---
 
