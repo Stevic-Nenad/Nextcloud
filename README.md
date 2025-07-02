@@ -1091,6 +1091,12 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Der persönliche Lernprozess, inklusive der grössten Hürden und "Aha!"-Momente, wurde detailliert beschrieben.
         *   Eine ehrliche Bewertung der Stärken und Schwächen der finalen Lösung wurde vorgenommen.
         *   Konkrete und umsetzbare Handlungsempfehlungen für eine Weiterentwicklung des Projekts in Richtung Produktivbetrieb wurden formuliert.
+    *   **Codebase finalisiert und kommentiert (User Story #31 ✓):**
+        *   Die gesamte Terraform-Codebase wurde mit `terraform fmt` konsistent formatiert.
+        *   Komplexe oder nicht selbsterklärende Ressourcen wie die IAM-Rollen für OIDC, die Launch Template für EKS und die High-Availability-Netzwerkstrategie wurden mit erklärenden Kommentaren versehen.
+        *   Die Helm-Chart-Templates (`_helpers.tpl`) und `values.yaml` wurden bereinigt und mit klareren Kommentaren zur besseren Verständlichkeit versehen.
+        *   Die GitHub Actions Workflows, insbesondere der komplexe `lifecycle.yml`-Workflow, wurden stark kommentiert, um die Logik der Jobs, Abhängigkeiten und Fehlerbehandlungsstrategien zu erklären.
+        *   Das obsolete Verzeichnis `/kubernetes-manifests` wurde entfernt, um technische Schulden abzubauen und das Repository sauber zu halten.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
 
@@ -2833,6 +2839,25 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 *   **Erwartetes Ergebnis:** Das Kapitel ist eine kohärente, kritische und ehrliche Auseinandersetzung mit dem Projektverlauf und den Lernergebnissen.
 *   **Tatsächliches Ergebnis:** Das Kapitel wurde sorgfältig ausgearbeitet und reflektiert den Projektverlauf authentisch. Die Analyse der Theorie-Praxis-Lücke, der persönlichen Entwicklung und der Lösung selbst ist kritisch und fundiert.
 *   **Nachweis:** Das finale Kapitel 7 in der `README.md` dient als Nachweis.
+
+---
+
+**Testfall: Codebase-Qualität und -Verständlichkeit**
+*   **Zugehörige User Story:** `Nextcloud#31` - Codebase finalisieren und kommentieren
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass die Codebase den Qualitätsanforderungen entspricht, gut dokumentiert ist und frei von unnötigen Artefakten ist.
+*   **Testschritte:**
+    1.  **Formatierung prüfen:** Führen Sie `terraform fmt --check -recursive` im `/terraform`-Verzeichnis aus.
+    2.  **Code-Review (Kommentare):** Führen Sie ein manuelles Review der folgenden Dateien durch und prüfen Sie, ob die Kommentare das "Warum" hinter dem Code erklären:
+        *   `terraform/iam_cicd.tf`
+        *   `terraform/launch_template.tf`
+        *   `.github/workflows/lifecycle.yml`
+        *   `charts/nextcloud-chart/templates/deployment.yaml`
+    3.  **Code-Review (Dead Code):** Stellen Sie sicher, dass keine auskommentierten, nicht-funktionalen Codeblöcke mehr vorhanden sind.
+    4.  **Struktur-Review:** Überprüfen Sie die Projekt-Verzeichnisstruktur. Das Verzeichnis `/kubernetes-manifests` darf nicht mehr existieren.
+*   **Erwartetes Ergebnis:** Die Formatierung ist korrekt. Die Kommentare sind hilfreich und erklären komplexe Logik. Das Repository ist sauber und enthält keine obsoleten Dateien mehr.
+*   **Tatsächliches Ergebnis:** Alle Formatierungs-, Kommentierungs- und Bereinigungsschritte wurden erfolgreich durchgeführt. Die Codebase ist in einem sauberen, verständlichen und gut dokumentierten Zustand.
+*   **Nachweis:** Der finale Zustand des `main`-Branches im Git-Repository dient als Nachweis.
 
 ---
 
