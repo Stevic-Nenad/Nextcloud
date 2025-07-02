@@ -1,73 +1,90 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# General Project Variables
+# ---------------------------------------------------------------------------------------------------------------------
+
 variable "aws_region" {
-  description = "The AWS region to deploy resources in."
+  description = "The AWS region where all resources for the project will be deployed."
   type        = string
   default     = "eu-central-1"
 }
 
-variable "vpc_cidr_block" {
-  type    = string
-  default = "10.0.0.0/16"
-}
-
-variable "availability_zones" {
-  type    = list(string)
-  default = ["eu-central-1a", "eu-central-1b"]
-
-  validation {
-    // Ensure at least two AZs are provided for the subnets as per requirements
-    condition     = length(var.availability_zones) >= 2
-    error_message = "At least two Availability Zones must be specified."
-  }
-}
-
-variable "public_subnet_cidrs" {
-  type    = list(string)
-  default = ["10.0.1.0/24", "10.0.2.0/24"]
-}
-
-variable "private_subnet_cidrs" {
-  type    = list(string)
-  default = ["10.0.101.0/24", "10.0.102.0/24"]
-}
-
 variable "project_name" {
-  description = "A name for the project, used for tagging resources."
+  description = "A name for the project, used as a prefix for tagging and naming resources."
   type        = string
   default     = "Nextcloud"
 }
 
-variable "eks_cluster_version" {
-  description = "Desired Kubernetes version for the EKS cluster."
+# ---------------------------------------------------------------------------------------------------------------------
+# Networking Variables
+# ---------------------------------------------------------------------------------------------------------------------
+
+variable "vpc_cidr_block" {
+  description = "The main CIDR block for the Virtual Private Cloud (VPC)."
   type        = string
-  default     = "1.33" //newest as of 01.06.2025
+  default     = "10.0.0.0/16"
 }
 
-variable "eks_public_access_cidrs" {
-  description = "List of CIDR blocks. Indicates from which CIDR blocks find users matching clusters to ARN."
+variable "availability_zones" {
+  description = "A list of Availability Zones to use for creating subnets, ensuring high availability."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = ["eu-central-1a", "eu-central-1b"]
+
+  validation {
+    condition     = length(var.availability_zones) >= 2
+    error_message = "At least two Availability Zones must be specified for high availability."
+  }
+}
+
+variable "public_subnet_cidrs" {
+  description = "A list of CIDR blocks for the public subnets, one for each Availability Zone."
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "private_subnet_cidrs" {
+  description = "A list of CIDR blocks for the private subnets, one for each Availability Zone."
+  type        = list(string)
+  default     = ["10.0.101.0/24", "10.0.102.0/24"]
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# EKS Cluster Variables
+# ---------------------------------------------------------------------------------------------------------------------
+
+variable "eks_cluster_version" {
+  description = "The desired Kubernetes version for the EKS cluster control plane."
+  type        = string
+  default     = "1.29" # As of mid-2024, 1.29 is a stable and supported version.
 }
 
 variable "eks_node_instance_types" {
-  description = "Instance types for the EKS_node group."
+  description = "A list of EC2 instance types to use for the EKS worker nodes."
   type        = list(string)
-  default     = ["m6i.large"]
+  default     = ["t3.medium"] # A good balance of cost and performance for this project.
 }
 
+# ---------------------------------------------------------------------------------------------------------------------
+# ECR Repository Variables
+# ---------------------------------------------------------------------------------------------------------------------
+
 variable "ecr_repository_name" {
-  description = "The name of the ECR repository for the application images."
+  description = "The name for the ECR repository. Although we use a public image, this is for demonstration."
   type        = string
   default     = "nextcloud-app"
 }
 
+# ---------------------------------------------------------------------------------------------------------------------
+# RDS Database Variables
+# ---------------------------------------------------------------------------------------------------------------------
+
 variable "rds_pg_version" {
-  description = "PostgreSQL engine version for RDS."
+  description = "The PostgreSQL engine version for the RDS instance."
   type        = string
-  default     = "17.2"
+  default     = "16.2" # Latest stable version of PostgreSQL 16.
 }
 
 variable "rds_instance_class" {
-  description = "The instance class for the RDS instance."
+  description = "The instance class for the RDS instance. db.t3.micro is eligible for the AWS Free Tier."
   type        = string
   default     = "db.t3.micro"
 }
@@ -85,13 +102,13 @@ variable "rds_master_username" {
 }
 
 variable "rds_db_name" {
-  description = "The name of the database to create within the RDS instance."
+  description = "The name of the database to be created within the RDS instance."
   type        = string
   default     = "nextclouddb"
 }
 
 variable "rds_multi_az_enabled" {
-  description = "Specifies if the RDS instance is multi-AZ."
+  description = "Specifies if the RDS instance should be deployed in a Multi-AZ configuration for high availability."
   type        = bool
   default     = true
 }
