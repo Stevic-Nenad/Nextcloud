@@ -883,6 +883,11 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Die Befehle `helm lint` und `helm template` laufen erfolgreich durch und bestätigen die syntaktische und strukturelle Korrektheit des Charts.
         *   Die Dokumentation der Chart-Struktur und Konfiguration wurde in den Abschnitten [4.2.1](#421-helm-chart-struktur), [4.2.2](#422-wichtige-templates) und [4.2.3](#423-konfigurationsmöglichkeiten-über-valuesyaml) im Haupt-README ergänzt.
         *   Alle projektspezifischen DoD-Punkte für diese User Story sind erfüllt.
+    *   **Secrets & ConfigMap templatisiert (User Story #17 ✓):**
+        *   Ein `templates/secret.yaml` wurde erstellt, welches optional ein Kubernetes Secret mit allen Admin- und Datenbank-Credentials basierend auf der `values.yaml` generiert. Die Logik unterstützt auch die Verwendung eines bereits existierenden Secrets, was die Flexibilität erhöht.
+        *   Ein `templates/configmap.yaml` wurde hinzugefügt, um das kritische `localhost`-Redirect-Problem zu lösen. Es generiert eine `autoconfig.php`, die dynamisch `trusted_domains` und `overwrite.cli.url` basierend auf einem Hostnamen in `values.yaml` setzt.
+        *   Das `deployment.yaml`-Template wurde angepasst, um die neue ConfigMap als Volume zu mounten und die Logik zur Auswahl des korrekten Secrets (entweder das neu generierte oder ein existierendes) zu implementieren.
+        *   Ein Sicherheitshinweis bezüglich der Passwortverwaltung wurde direkt in der `values.yaml` und im Haupt-README ergänzt.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
@@ -1935,32 +1940,42 @@ Die Templates wurden direkt von den validierten manuellen Manifesten aus Sprint 
     ```
 *   **`pvc.yaml`**: Definiert den `PersistentVolumeClaim`. Die Grösse und die `storageClassName` sind über `values.yaml` steuerbar.
 *   **`service.yaml`**: Erstellt den `Service`, dessen Typ (`LoadBalancer`, `ClusterIP`, etc.) und Port in `values.yaml` definiert werden können.
+*   **`secret.yaml`**: Dieses Template enthält eine `if/else`-Logik. Standardmässig erstellt es ein Kubernetes Secret, das die initialen Admin-Credentials und die Datenbank-Verbindungsdaten aus der `values.yaml` liest und base64-kodiert. Alternativ kann das Chart so konfiguriert werden, dass es ein extern erstelltes, bereits existierendes Secret verwendet, was in Produktionsumgebungen Best Practice ist.
+*   **`configmap.yaml`**: Löst eines der häufigsten Probleme bei Nextcloud-Deployments auf Kubernetes. Es generiert eine `autoconfig.php` und mountet diese in den Pod. Diese Datei konfiguriert `trusted_domains` und `overwrite.cli.url` dynamisch basierend auf dem in `values.yaml` gesetzten Hostnamen. Dadurch wird sichergestellt, dass Nextcloud hinter dem Load Balancer korrekt funktioniert und keine Redirect-Fehler auftreten.
 
 #### 4.2.3 Konfigurationsmöglichkeiten über `values.yaml`
 
 Die `values.yaml` ermöglicht die flexible Anpassung des Deployments. Die wichtigsten Parameter sind:
 
 ```yaml
-# Ausschnitt aus values.yaml
-replicaCount: 1
+# Konfiguration für die Nextcloud-Anwendung
+nextcloud:
+  host: "a1b2c3d4.elb.amazonaws.com" # Muss mit dem Load Balancer Hostnamen befüllt werden
+  admin:
+    user: "admin"
+    password: "SuperSecurePassword!" # Sollte via --set überschrieben werden
 
-image:
-  repository: nextcloud
-  tag: "latest" # Überschreibt die appVersion aus Chart.yaml
-
-service:
-  type: LoadBalancer
-  port: 80
-
-persistence:
-  enabled: true
-  storageClassName: "ebs-sc"
-  size: 10Gi
-
-existingSecretName: "nextcloud-db-secret"
+# Konfiguration der Datenbank-Verbindung
+database:
+  enabled: true # Auf true setzen, damit das Chart ein Secret erstellt
+  existingSecret: "" # Leer lassen, wenn 'enabled' true ist
+  user: "nextcloudadmin"
+  password: "AnotherSuperSecurePassword!" # Sollte via --set überschrieben werden
+  database: "nextclouddb"
+  host: "nextcloud-db-instance.rds.amazonaws.com" # Muss mit dem RDS Endpunkt befüllt werden
 ```
 
 Diese Struktur macht das Chart flexibel genug für verschiedene Umgebungen (Entwicklung, Produktion) und einfach in einer CI/CD-Pipeline zu verwenden.
+
+#### 4.2.4 Sicherheitshinweis zur Passwortverwaltung
+
+Das Helm Chart bietet die Möglichkeit, Passwörter für den Admin-Benutzer und die Datenbank direkt in der `values.yaml`-Datei zu definieren.
+
+**WARNUNG:** Das Speichern von unverschlüsselten Passwörtern in `values.yaml`-Dateien, die in ein Git-Repository eingecheckt werden, ist eine **unsichere Praxis** und sollte in Produktionsumgebungen unbedingt vermieden werden.
+
+Für dieses Projekt wird diese Methode zur Vereinfachung verwendet. Für eine produktive Nutzung werden folgende Ansätze empfohlen:
+1.  **`--set` Flag bei der Installation:** Passwörter können zur Laufzeit übergeben werden: `helm install ... --set database.password=MEIN_GEHEIMES_PASSWORT`.
+2.  **Externe Secrets-Verwaltung:** Die sicherste Methode ist, das Secret manuell oder über einen anderen Prozess (z.B. mit dem AWS Secrets Manager & CSI Driver) zu erstellen und dem Chart via `database.existingSecret` nur den Namen des Secrets zu übergeben.
 
 ### 4.3 CI/CD Pipeline mit GitHub Actions
 
