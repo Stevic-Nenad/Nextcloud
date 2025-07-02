@@ -1,0 +1,124 @@
+name: Deploy Nextcloud to EKS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  get-infra-data:
+    runs-on: ubuntu-latest
+    outputs:
+      eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
+      rds_host: ${{ steps.tf_outputs.outputs.rds_instance_endpoint }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init (for remote state access)
+        id: init
+        run: terraform -chdir=./terraform init
+
+      - name: Get Terraform Outputs
+        id: tf_outputs
+        run: |
+          cd ./terraform
+          # Use -json to make outputs easily parseable
+          terraform output -json > outputs.json
+          # Use jq to parse the JSON and set the outputs for the job
+          echo "eks_cluster_name=$(jq -r .eks_cluster_name.value outputs.json)" >> $GITHUB_OUTPUT
+          echo "rds_host=$(jq -r .rds_instance_endpoint.value outputs.json)" >> $GITHUB_OUTPUT
+
+  deploy-application:
+    runs-on: ubuntu-latest
+    needs: get-infra-data
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure Kubectl
+        run: |
+          # Use the dynamic cluster name from the previous job's output
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ needs.get-infra-data.outputs.eks_cluster_name }}
+          echo "Kubeconfig configured for cluster: ${{ needs.get-infra-data.outputs.eks_cluster_name }}"
+          kubectl get nodes
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.15.2'
+
+      - name: Lint Helm Chart
+        run: helm lint ./charts/nextcloud-chart
+
+      - name: Deploy or Upgrade Nextcloud with Helm
+        id: helm_deploy
+        run: |
+          helm upgrade --install nextcloud ./charts/nextcloud-chart \
+            --namespace nextcloud --create-namespace \
+            --wait --timeout 10m \
+            --set database.host="${{ needs.get-infra-data.outputs.rds_host }}" \
+            --set database.password="${{ secrets.RDS_DB_PASSWORD }}" \
+            --set nextcloud.admin.password="${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
+
+      - name: Get Load Balancer Hostname and Finalize Configuration
+        id: finalize_config
+        run: |
+          HOSTNAME=""
+          for i in {1..30}; do
+            HOSTNAME=$(kubectl get svc nextcloud -n nextcloud -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ -n "$HOSTNAME" ]; then
+              echo "Load Balancer found: $HOSTNAME"
+              break
+            fi
+            echo "Waiting for Load Balancer hostname... (Attempt $i/30)"
+            sleep 10
+          done
+
+          if [ -z "$HOSTNAME" ]; then
+            echo "::error::Failed to get Load Balancer hostname after 5 minutes."
+            exit 1
+          fi
+          
+          echo "Performing final Helm upgrade with correct hostname..."
+          helm upgrade --install nextcloud ./charts/nextcloud-chart \
+            --namespace nextcloud \
+            --reuse-values \
+            --set nextcloud.host="$HOSTNAME"
+
+      - name: Run Helm Tests
+        if: success()
+        run: |
+          for i in {1..3}; do
+            if helm test nextcloud -n nextcloud; then
+              echo "Helm tests passed on attempt $i."
+              exit 0
+            fi
+            echo "Helm tests failed on attempt $i. Retrying in 15 seconds..."
+            sleep 15
+          done
+          echo "::error::Helm tests failed after 3 attempts."
+          exit 1
