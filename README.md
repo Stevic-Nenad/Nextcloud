@@ -1061,6 +1061,13 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
     *   `Nextcloud#30`: Präsentation und Demo für Kolloquium vorbereiten.
 *   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
 *   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+    *   **"Full Setup" GitHub Actions Workflow erstellt (User Story #41 ✓):**
+        *   Der bestehende App-Deployment-Workflow wurde in einen wiederverwendbaren Workflow (`reusable-deploy-app.yml`) refaktorisiert, um Codeduplizierung zu vermeiden.
+        *   Ein neuer, manuell triggerbarer `lifecycle.yml`-Workflow wurde erstellt, der über einen `workflow_dispatch`-Input die Aktion `setup` entgegennimmt.
+        *   Der `setup`-Pfad im Workflow besteht aus zwei Jobs:
+            1.  `terraform-apply`: Erstellt die gesamte AWS-Infrastruktur mit `terraform apply -auto-approve` und gibt die erstellten Ressourcen-Namen (Cluster, RDS-Host) als Output weiter.
+            2.  `deploy-application`: Ruft den wiederverwendbaren Workflow auf und übergibt ihm die dynamisch erstellten Infrastrukturdaten sowie die notwendigen Secrets, um die Nextcloud-Anwendung auf der frisch erstellten Infrastruktur zu deployen.
+        *   Der Workflow wurde erfolgreich getestet und provisioniert die gesamte Umgebung auf Knopfdruck.
 *   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Dies ist quasi die Generalprobe für die Abgabe/Präsentation)*
 *   **Sprint Retrospektive (Wichtigste Aktion):** *(Abschliessende Reflexion über das gesamte Projekt und den Lernprozess)*
 
@@ -2635,6 +2642,23 @@ Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Diese
 *   **Erwartetes Ergebnis:** Das Badge ist sichtbar und zeigt den korrekten Status. Ein Klick auf das Badge leitet den Benutzer auf die Übersichtsseite der Workflow-Ausführungen für `deploy.yml` weiter.
 *   **Tatsächliches Ergebnis:** Alle Schritte waren erfolgreich. Das Badge wurde korrekt angezeigt und der Link funktionierte wie erwartet.
 *   **Nachweis:** Die `README.md`-Datei selbst im Repository dient als permanenter, live-aktualisierter Nachweis.
+
+---
+
+**Testfall: Validierung des "Full Setup"-Lifecycle-Workflows**
+*   **Zugehörige User Story:** `Nextcloud#41` - "Full Setup" GitHub Actions Workflow erstellen
+*   **Status:** Abgeschlossen
+*   **Zielsetzung:** Sicherstellen, dass der manuelle `setup`-Workflow die gesamte AWS-Infrastruktur und die Nextcloud-Anwendung von Grund auf erfolgreich und automatisiert provisionieren kann.
+*   **Testschritte:**
+    1.  **Voraussetzung:** Es existiert keine Projekt-Infrastruktur in AWS (ggf. vorherigen Teardown durchführen).
+    2.  In der GitHub Actions UI den "Full Environment Lifecycle"-Workflow auswählen.
+    3.  Den Workflow manuell mit der ausgewählten Option `setup` starten.
+    4.  Den Fortschritt der beiden Jobs (`terraform-apply`, `deploy-application`) beobachten.
+    5.  Die Logs des `terraform-apply`-Jobs überprüfen, um die erfolgreiche Ressourcenerstellung zu bestätigen.
+    6.  Die Logs des `deploy-application`-Jobs überprüfen, der den wiederverwendbaren Workflow aufruft, um das erfolgreiche Helm-Deployment und die Helm-Tests zu bestätigen.
+*   **Erwartetes Ergebnis:** Beide Jobs laufen erfolgreich durch. Der gesamte Workflow wird mit einem grünen Haken abgeschlossen. Eine Überprüfung in der AWS-Konsole zeigt die neu erstellte Infrastruktur, und die Nextcloud-Instanz ist über ihren Load-Balancer-Endpunkt erreichbar.
+*   **Tatsächliches Ergebnis:** Der Workflow wurde erfolgreich ausgeführt. Der `terraform-apply`-Job erstellte alle AWS-Ressourcen fehlerfrei. Der `deploy-application`-Job übernahm die Outputs korrekt und installierte und verifizierte die Nextcloud-Anwendung.
+*   **Nachweis:** Ein Screenshot der erfolgreichen `lifecycle.yml`-Workflow-Ausführung (für `setup`) in der GitHub Actions UI.
 
 ---
 
