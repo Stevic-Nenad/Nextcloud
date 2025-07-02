@@ -1,0 +1,19 @@
+nameOverride: "nextcloud"
+fullnameOverride: "nextcloud"
+replicaCount: 1
+
+image:
+  repository: nextcloud
+  pullPolicy: IfNotPresent
+  tag: ""
+
+service:
+  type: LoadBalancer
+  port: 80
+
+persistence:
+  enabled: true
+  storageClassName: "ebs-sc"
+  size: 10Gi
+
+existingSecretName: "nextcloud-db-secret"
