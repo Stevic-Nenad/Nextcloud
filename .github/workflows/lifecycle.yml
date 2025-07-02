@@ -1,0 +1,69 @@
+name: Full Environment Lifecycle
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform: "setup" to build infra and deploy, "destroy" to tear down.'
+        required: true
+        type: choice
+        options:
+          - setup
+          - destroy
+
+jobs:
+  # --- SETUP PATH ---
+  terraform-apply:
+    name: "Terraform Apply"
+    if: github.event.inputs.action == 'setup'
+    runs-on: ubuntu-latest
+    outputs:
+      eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
+      rds_host: ${{ steps.tf_outputs.outputs.rds_host }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.CICD_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform -chdir=./terraform init
+
+      - name: Terraform Apply
+        run: terraform -chdir=./terraform apply -auto-approve
+
+      - name: Get Terraform Outputs
+        id: tf_outputs
+        run: |
+          cd ./terraform
+          echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> $GITHUB_OUTPUT
+          echo "rds_host=$(terraform output -raw rds_instance_endpoint)" >> $GITHUB_OUTPUT
+
+  deploy-application:
+    name: "Deploy Application"
+    if: github.event.inputs.action == 'setup'
+    needs: terraform-apply # Depends on the successful infrastructure creation
+
+    # This is where we call our reusable workflow
+    uses: ./.github/workflows/reusable-deploy-app.yml@main
+    with:
+      # Pass the outputs from the terraform job as inputs to the reusable workflow
+      EKS_CLUSTER_NAME: ${{ needs.terraform-apply.outputs.eks_cluster_name }}
+      RDS_DB_HOST: ${{ needs.terraform-apply.outputs.rds_host }}
+    secrets:
+      # Pass down the required secrets
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      CICD_ROLE_NAME: ${{ secrets.CICD_ROLE_NAME }}
+      RDS_DB_PASSWORD: ${{ secrets.RDS_DB_PASSWORD }}
+      NEXTCLOUD_ADMIN_PASSWORD: ${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}
+
+  # The jobs for the 'destroy' path will be added in the next ticket.
