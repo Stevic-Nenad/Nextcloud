@@ -987,8 +987,34 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Das offizielle GitHub Actions Status-Badge für den `deploy.yml`-Workflow wurde generiert.
         *   Der Markdown-Code für das Badge wurde an einer prominenten Stelle am Anfang der `README.md`-Datei eingefügt.
         *   Das Badge zeigt erfolgreich den Live-Status (z.B. "passing") der letzten Pipeline-Ausführung auf dem `main`-Branch an und ist direkt mit der Actions-Seite des Repositories verlinkt.
-*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
-*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+*   **Sprint Review (durchgeführt am 03.07.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team), Stakeholder (repräsentiert durch die Fachexperten).
+    *   **Präsentation des Sprint-Ziels & Inkrements:** Das committete Sprint-Ziel – *"Eine sichere und voll-automatisierte CI/CD-Pipeline ist etabliert..."* – wurde vollständig erreicht. Alle committeten User Stories (`#20`, `#21`, `#23`) wurden erfolgreich abgeschlossen. Das Produktinkrement ist nun eine voll funktionsfähige, automatisierte End-to-End-Deployment-Lösung.
+    *   **Live-Demo (Demo-Highlight):** Der gesamte automatisierte Prozess wurde live demonstriert, was den Höhepunkt des Projekts darstellt:
+        1.  Eine kleine, harmlose Änderung (z.B. ein Kommentar) wurde in einer Codedatei vorgenommen und direkt in den `main`-Branch gepusht.
+        2.  Die Stakeholder konnten live im "Actions"-Tab von GitHub beobachten, wie der `deploy.yml`-Workflow automatisch startete.
+        3.  Es wurde durch die Logs der einzelnen Schritte navigiert, um die Schlüsselfunktionen zu zeigen:
+            *   Die erfolgreiche, passwortlose Authentifizierung via OIDC.
+            *   Das dynamische Auslesen des Cluster-Namens aus dem Terraform-State.
+            *   Der erfolgreiche `helm upgrade --install`-Befehl.
+            *   Das Warten auf den Load-Balancer-Hostnamen und der finale, automatisierte Konfigurations-Upgrade.
+            *   Die erfolgreiche Ausführung der `helm test`-Suite am Ende.
+        4.  Abschliessend wurde die Hauptseite des GitHub-Repositorys gezeigt, auf der das grüne "passing"-Status-Badge den Erfolg der soeben durchgeführten Pipeline anzeigte.
+    *   **Diskussion & Feedback (simuliert):** Die Stakeholder waren beeindruckt von der nahtlosen und robusten Automatisierung. Die elegante Lösung für das "dynamische Cluster-Namen"-Problem wurde als besonders professionell und praxisnah hervorgehoben. Das Projekt hat nun den Zustand erreicht, den es von Anfang an anstrebte: Eine Änderung im Code führt zu einem automatisierten, verifizierten Deployment in der Cloud. Das Product Backlog muss für das Erreichen des Projektziels nicht mehr angepasst werden; die verbleibende Arbeit in Sprint 6 konzentriert sich auf die Finalisierung und Dokumentation.
+*   **Sprint Retrospektive (durchgeführt am 03.07.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Ziel der Retrospektive:** Den komplexen Integrationssprint reflektieren, um die Strategien zur Problemlösung zu analysieren und den Gesamtprozess für den Projektabschluss zu verfeinern.
+    *   **Diskussion – Was lief aussergewöhnlich gut?**
+        *   **Iterative Problemlösung:** Die Erkenntnis, dass der Cluster-Name dynamisch sein muss, war kein Blocker, sondern führte zu einer besseren, robusteren Lösung (Auslesen des Remote States). Die Fähigkeit, den Plan anzupassen, ohne das Ziel aus den Augen zu verlieren, war ein grosser Erfolg.
+        *   **Auf vorheriger Arbeit aufbauen:** Die solide Basis aus den Sprints 1-4 (Terraform-Infra, Helm Chart) war entscheidend. Die Pipeline konnte sich auf das "Zusammenfügen" konzentrieren, anstatt grundlegende Probleme in der Infrastruktur oder Anwendungspaketierung beheben zu müssen.
+        *   **Sicherheit von Anfang an:** Die Entscheidung, von Beginn an auf OIDC zu setzen, anstatt mit langlebigen Schlüsseln zu beginnen, hat sich ausgezahlt und zu einer sauberen, sicheren Architektur geführt.
+    *   **Diskussion – Was haben wir gelernt (Verbesserungspotenzial)?**
+        *   **Annahmen früher hinterfragen:** Die Annahme eines statischen Cluster-Namens war eine Betriebseinschränkung (Kosten), die früher hätte in die technische Planung einfliessen können. Dies unterstreicht die Wichtigkeit, nicht-funktionale Anforderungen (wie z.B. Betriebskosten/Ephemeralität) frühzeitig zu berücksichtigen.
+        *   **Workflow-Komplexität:** Der `deploy.yml`-Workflow ist mit dem Shell-Skript zur Abfrage des Load Balancers relativ komplex geworden. Zukünftig könnte man überlegen, ob es dafür spezialisierte GitHub Actions gibt, um die Lesbarkeit weiter zu erhöhen. Für dieses Projekt ist die Lösung jedoch pragmatisch und effektiv.
+    *   **Abgeleitete Action Items für Sprint 6:**
+        1.  **Fokus auf Dokumentation und Aufräumen:** Der letzte Sprint wird sich voll und ganz auf die Finalisierung der Dokumentation konzentrieren. Alle Abschnitte des `README.md` werden noch einmal überprüft, um sicherzustellen, dass sie den finalen Stand der Implementierung exakt widerspiegeln.
+        2.  **Erstellung einer sauberen "Anleitung für den Experten":** Die Installations- und Inbetriebnahme-Anleitung (Kapitel 4.4) wird besonders sorgfältig ausformuliert, damit ein externer Gutachter das Projekt von Grund auf nachvollziehen und potenziell selbst ausführen kann. Dies beinhaltet klare Anweisungen zur Konfiguration der GitHub-Secrets und zum Ausführen von Terraform.
+
 
 ---
 
