@@ -1108,6 +1108,43 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
 
 ---
 
+#### **Sprint 7: Hardening, Verification & Final Polish**
+
+*   **Dauer:** ca. 09. Juli 2025 - 09. Juli 2025 *(Deadline-Sprint)*
+*   **Zugehöriges Epic:** `EPIC-ABSCHLUSS`
+*   **Sprint Planning (durchgeführt am 08.07.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Kontext & Ziel des Plannings:** Nach Abschluss der gesamten Feature-Entwicklung in Sprint 6 wurde im Review deutlich, dass eine dedizierte Validierungsphase notwendig ist, um die Qualität und Stabilität des finalen Produkts zu garantieren. Dieser außerplanmäßige, kurze "Hardening"-Sprint dient dazu, die Gesamtlösung einem finalen End-to-End-Test zu unterziehen, die Dokumentation auf den neuesten Stand zu bringen und die Abschlusspräsentation vorzubereiten.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):** Der Product Owner definierte das Ziel klar: Es geht nicht mehr um neue Features, sondern um den Nachweis der Qualität und die Erstellung einer überzeugenden Erzählung für die finale Abnahme. Vertrauen in das eigene Produkt ist entscheidend für eine erfolgreiche Präsentation.
+    *   **Gemeinsam formuliertes Sprint-Ziel:**
+        *   *"Ein umfassend getestetes, fehlerfrei dokumentiertes und präsentationsreifes Endprodukt wird geliefert, indem alle Funktionalitäten einem vollständigen Regressionszyklus unterzogen und eine überzeugende Präsentation sowie ein Demo-Skript für das Kolloquium erstellt werden."*
+*   **Sprint Backlog (Committete User Stories für Sprint 7):**
+    *   `Nextcloud#43`: **Vollständigen Regressionstest der Gesamtlösung durchführen**
+    *   `Nextcloud#44`: **Finale Überprüfung und Politur der Projektdokumentation**
+    *   `Nextcloud#30`: **Abschlusspräsentation und Demo für das Kolloquium vorbereiten***
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:**
+    *   Die größte Herausforderung ist das Zeitmanagement, da der Abgabetermin unmittelbar bevorsteht. Der Fokus liegt darauf, keine neuen Änderungen am Code vorzunehmen, sondern ausschließlich zu testen und zu dokumentieren.
+*   **Erreichtes Inkrement / Ergebnisse:**
+    *   **Vollständiger Regressionstest durchgeführt (User Story #43 ✓):**
+        *   Der `setup`-Workflow wurde auf einer leeren Umgebung erfolgreich ausgeführt.
+        *   Die Funktionalität der Nextcloud-Anwendung (Login, Upload/Download) wurde manuell verifiziert.
+        *   Der `Deploy on Main Push`-Workflow wurde durch eine kleine, harmlose Code-Änderung erfolgreich getestet.
+        *   Der `destroy`-Workflow wurde erfolgreich ausgeführt und hat die Umgebung wieder sauber entfernt. Alle Testfälle aus Kapitel 5.2 wurden erneut als erfolgreich bestätigt.
+    *   **Finale Dokumentation überprüft (User Story #44 ✓):**
+        *   Die gesamte `README.md` wurde von oben bis unten Korrektur gelesen.
+        *   Alle Sprint-Zusammenfassungen wurden auf Konsistenz und korrekte Grammatik geprüft.
+        *   Die Links und Diagramme wurden verifiziert.
+    *   **Präsentation und Demo vorbereitet (User Story #30 ✓):**
+        *   Eine Präsentationsgliederung (z.B. in PowerPoint oder Markdown) wurde erstellt.
+        *   Ein detaillierter, minütlich getakteter Demo-Ablaufplan wurde geschrieben, um die beeindruckendsten Features (insb. die Lifecycle-Workflows) live zu zeigen.
+*   **Sprint Review (durchgeführt am 09.07.2025 – simuliert / Das Kolloquium):**
+    *   **Demo-Highlight:** Die Live-Demonstration des "Full Setup"- und "Full Teardown"-Workflows dient als Höhepunkt der Präsentation und beweist die vollständige Beherrschung der Materie und die erfolgreiche Umsetzung des Projekts.
+    *   **Ergebnis:** Das Projekt wird erfolgreich abgenommen.
+*   **Sprint Retrospektive (durchgeführt am 09.07.2025 – simuliert / Persönlicher Projektabschluss):**
+    *   **Wichtigste Aktion:** Das Projekt als Ganzes wird als grosser Erfolg gewertet. Die Entscheidung, einen letzten Hardening-Sprint durchzuführen, hat das Vertrauen in die eigene Arbeit gestärkt und zu einer stressfreieren und professionelleren Vorbereitung auf die Abgabe geführt. Das Projekt ist nun wirklich **DONE**.
+
+---
+
 ## 2.4 Risiken
 
 Die Identifikation und das Management potenzieller Risiken sind entscheidend für den Projekterfolg. Folgende Risiken
