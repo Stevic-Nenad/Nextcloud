@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "nextcloud.fullname" . }}-test-connection"
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  annotations:
+    # This is the magic annotation that makes this a Helm test.
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      # We use a busybox image because it's small and contains wget.
+      image: busybox
+      command: ['wget']
+      # We target the service internally via its Kubernetes service name.
+      # The /status.php endpoint is a good health check for Nextcloud.
+      # The '--spider' flag tells wget to check for existence without downloading.
+      # The '-T 10' sets a 10-second timeout.
+      args: ['-q', '--spider', '-T', '10', 'http://{{ include "nextcloud.fullname" . }}:{{ .Values.service.port }}/status.php']
+  # Tests should not run forever. If they fail, they should just fail.
+  restartPolicy: Never

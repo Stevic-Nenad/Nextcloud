@@ -894,8 +894,37 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
         *   Für den Standardfall (`LoadBalancer`) wird der Benutzer explizit angewiesen, wie er den externen Hostnamen abruft und den entscheidenden `helm upgrade`-Befehl ausführt, um die Konfiguration abzuschliessen.
         *   Informationen zum Abrufen der Admin-Credentials werden ebenfalls dynamisch angezeigt, je nachdem, ob das Chart ein Secret erstellt hat oder ein existierendes verwendet wird.
         *   Die Funktionalität wurde mit `helm install --dry-run` verifiziert.
-*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
-*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+    *   **Einfachen Helm-Test für Deployment-Verfügbarkeit implementiert (User Story #19 ✓):**
+        *   Ein Test-Manifest wurde unter `templates/tests/test-connection.yaml` erstellt.
+        *   Der Test definiert einen Pod mit der Annotation `helm.sh/hook: test`, der nach der Installation mit dem Befehl `helm test <release-name>` ausgeführt werden kann.
+        *   Der Pod verwendet `wget`, um den internen `/status.php`-Endpunkt des Nextcloud-Services abzufragen und so die grundlegende Erreichbarkeit und Funktionsfähigkeit der Anwendung zu verifizieren.
+        *   Der Test wurde erfolgreich auf einer laufenden Installation im EKS-Cluster ausgeführt und hat den Status `Succeeded` zurückgegeben.
+    *   **Manuelle Manifeste in Helm-Templates überführt (User Story #40 ✓):**
+        *   Die funktionalen Kubernetes-Manifeste (Deployment, Service, PVC) aus dem manuellen Proof-of-Concept (Sprint 3) wurden erfolgreich in die Helm-Chart-Struktur im `templates/`-Verzeichnis migriert.
+        *   Grundlegende Werte wie die Replica-Anzahl (`.Values.replicaCount`), das Container-Image (`.Values.image.repository` & `.Values.image.tag`) und die Speichergrösse des PVCs (`.Values.persistence.size`) wurden dabei direkt parametrisiert.
+        *   Diese Arbeit wurde implizit als Teil der Erstellung des Chart-Grundgerüsts (Ticket #16) erledigt und bildet die Basis für alle weiteren Chart-Erweiterungen.
+*   **Sprint Review (durchgeführt am 20.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team), Stakeholder (repräsentiert durch die Fachexperten).
+    *   **Präsentation des Sprint-Ziels & Inkrements:** Das committete Sprint-Ziel – *"Ein eigenständiges und funktionales Helm Chart für Nextcloud ist entwickelt..."* – wurde vollständig erreicht. Alle committeten User Stories (`#16`, `#40`, `#17`, `#19`, `#18`) wurden abgeschlossen und erfüllen die Definition of Done.
+    *   **Live-Demo (Demo-Highlight):** Der Höhepunkt des Reviews war die Live-Demonstration des gesamten Lebenszyklus des neuen Helm Charts:
+        1.  **Installation & Post-Install Notes:** Mit dem Befehl `helm install nextcloud ./charts/nextcloud-chart/ --dry-run` wurde gezeigt, wie das Chart valide Manifeste generiert und die benutzerfreundliche `NOTES.txt` die nächsten Schritte klar kommuniziert.
+        2.  **Lösung des Redirect-Problems:** Es wurde demonstriert, wie die `ConfigMap` aus `templates/configmap.yaml` dynamisch die `trusted_domains` setzt. Der Wert wurde mit dem Befehl `helm template . --set nextcloud.host=my-test.com` live gerendert und gezeigt.
+        3.  **Automatisierter Test:** Auf einer bereits laufenden Instanz wurde `helm test nextcloud` ausgeführt. Die Stakeholder konnten live sehen, wie der Test-Pod startete, den `/status.php`-Endpunkt erfolgreich abfragte und die Test-Suite den Status `Succeeded` meldete. Dies bestätigte die grundlegende Funktionsfähigkeit des Deployments.
+    *   **Diskussion & Feedback (simuliert):** Die Stakeholder zeigten sich sehr zufrieden mit dem Ergebnis. Das Inkrement (das Helm Chart) ist eine massive Verbesserung gegenüber den manuellen Manifesten. Es ist robust, wiederverwendbar und benutzerfreundlich. Besonders die proaktive Lösung des `localhost`-Redirect-Problems und die Implementierung des automatisierten Tests wurden als Zeichen für hohe Qualität und Voraussicht gelobt. Es sind keine Änderungen am Product Backlog erforderlich; der Weg für die CI/CD-Pipeline in Sprint 5 ist frei.
+*   **Sprint Retrospektive (durchgeführt am 20.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Ziel der Retrospektive:** Den Entwicklungsprozess des Helm Charts reflektieren, um Best Practices zu identifizieren und den Workflow für zukünftige Automatisierungsaufgaben zu optimieren.
+    *   **Diskussion – Was lief aussergewöhnlich gut?**
+        *   **Validierungskreislauf:** Der ständige Wechsel zwischen Code-Anpassung, `helm lint` und `helm template` hat sich als extrem effizient erwiesen. Fehler (wie das Naming-Problem) wurden sofort entdeckt und behoben, lange bevor ein `helm install` fehlschlagen konnte.
+        *   **Blaupause aus Sprint 3:** Die Nutzung der validierten manuellen Manifeste als Vorlage hat die Entwicklung enorm beschleunigt und das Risiko von Konfigurationsfehlern minimiert. Die Entscheidung, zuerst ein manuelles PoC zu machen, hat sich voll ausgezahlt.
+        *   **User-Experience-Fokus:** Die Arbeit an `NOTES.txt` und die klaren Kommentare in `values.yaml` waren keine Nebensächlichkeit, sondern haben die Qualität und Wiederverwendbarkeit des Charts entscheidend verbessert.
+    *   **Diskussion – Was haben wir gelernt (Verbesserungspotenzial)?**
+        *   **Chicken-and-Egg-Problem:** Die Notwendigkeit, das Chart zuerst zu installieren, um den Load-Balancer-Hostnamen zu erhalten, und dann ein `helm upgrade` durchzuführen, ist ein bekannter Knackpunkt. Dies ist zwar der Standardweg, aber für die CI/CD-Pipeline in Sprint 5 müssen wir uns überlegen, wie wir diesen zweistufigen Prozess am besten automatisieren.
+        *   **Implizite Abhängigkeiten:** Ticket `#40` wurde fast vollständig durch `#16` erledigt. Das ist zwar effizient, aber im Sprint Planning hätte man diese Überlappung vielleicht erkennen und die Tickets zu einem zusammenfassen können, um das Backlog klarer zu halten.
+    *   **Abgeleitete Action Items für Sprint 5:**
+        1.  **Automatisierung des "Upgrade"-Schritts:** Für die CI/CD-Pipeline in Sprint 5 wird ein dedizierter Schritt oder ein Skript eingeplant, das nach dem `helm install` den Load-Balancer-Hostnamen abfragt und automatisch den `helm upgrade`-Befehl ausführt, um den Prozess vollständig zu automatisieren.
+        2.  **Wiederverwendung von Konfigurationslogik:** Die Logik zur Parameterübergabe in Helm (`--set`, `-f`) wird als Blaupause für die Konfiguration der Terraform-Schritte in der CI/CD-Pipeline verwendet, um auch dort eine klare Trennung von Code und Konfiguration beizubehalten.
+
 
 ---
 
@@ -2115,6 +2144,12 @@ Dies führt den Benutzer durch die kritischen ersten Schritte, insbesondere das 
 #### 5.1.3 Manuelle Funktionstests der Nextcloud Instanz
 
 #### 5.1.4 End-to-End Tests der CI/CD Pipeline
+
+#### 5.1.5 Automatisierte Post-Deployment-Tests (Helm Test)
+
+Um nach einer Installation oder einem Upgrade schnell zu verifizieren, dass die Anwendung nicht nur deployt wurde, sondern auch tatsächlich läuft und antwortet, wird die `helm test`-Funktionalität genutzt.
+
+Im Verzeichnis `templates/tests/` des Charts wurde ein Test-Pod definiert. Dieser Pod startet nach dem Deployment auf Befehl (`helm test <release-name>`), versucht eine Verbindung zum `/status.php`-Endpunkt des Nextcloud-Services innerhalb des Clusters aufzubauen und beendet sich bei Erfolg mit einem positiven Status. Dies dient als einfacher, aber effektiver "Smoke-Test", um die grundlegende Funktionsfähigkeit der Anwendung automatisiert zu bestätigen.
 
 ### 5.2 Testfälle und Protokolle
 
