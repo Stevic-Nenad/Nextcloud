@@ -932,21 +932,42 @@ Sprints 2-6 sind vorläufig und werden im jeweiligen Sprint Planning Meeting fin
 
 #### **Sprint 5: CI/CD Pipeline (GitHub Actions) & Tests**
 
-* **Dauer:** ca. 21. Juni 2025 - 03. Juli 2025 *(Beispiel, an dein Gantt anpassen)*
-* **Zugehörige Epics:** `EPIC-CICD`, Teile von `EPIC-ABSCHLUSS` (Testing)
-* **Vorläufiges Sprint-Ziel:** Implementierung einer GitHub Actions CI/CD-Pipeline, die bei Änderungen im Repository
-  automatisch das Nextcloud Helm Chart auf dem EKS-Cluster bereitstellt oder aktualisiert. Durchführung erster
-  End-to-End-Tests.
-* **Mögliche Themen / User Story Schwerpunkte (Auswahl im Sprint Planning):**
-    * `Nextcloud#20`: OIDC Authentifizierung für GitHub Actions zu AWS einrichten
-    * `Nextcloud#21`: GitHub Actions Workflow für Helm Chart Deployment erstellen
-    * `Nextcloud#22`: Terraform Plan/Apply in CI/CD Pipeline integrieren (optional)
-    * `Nextcloud#23`: Pipeline Status Badge im README anzeigen
-    * `Nextcloud#24`: Post-Deployment Check auf Nextcloud Verfügbarkeit
-* **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
-* **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
-* **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
-* **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
+*   **Dauer:** ca. 21. Juni 2025 - 03. Juli 2025
+*   **Zugehörige Epics:** `EPIC-CICD`, Teile von `EPIC-ABSCHLUSS` (Testing)
+*   **Sprint Planning (durchgeführt am 20.06.2025 – simuliert):**
+    *   **Teilnehmer (simuliert):** Nenad Stevic (als PO, SM, Dev Team).
+    *   **Kontext & Ziel des Plannings:** Sprint 4 hat ein robustes und testbares Helm Chart geliefert. Der manuelle Deployment-Prozess ist damit zwar standardisiert, aber noch nicht automatisiert. Das Ziel dieses Sprints ist es, den gesamten Prozess von einer Code-Änderung bis zum verifizierten Deployment im EKS-Cluster zu automatisieren.
+    *   **Diskussion – Das "Warum" (Sprint-Ziel Formulierung):**
+        *   Der Product Owner betonte, dass der wahre Wert von DevOps in der Geschwindigkeit und Zuverlässigkeit liegt, mit der Änderungen ausgeliefert werden können. Eine manuelle `helm install`-Ausführung ist fehleranfällig und nicht skalierbar. Eine CI/CD-Pipeline ist das letzte Puzzlestück, um eine End-to-End-Automatisierung zu erreichen.
+        *   Das Development Team hob hervor, dass eine sichere Authentifizierung (ohne langlebige AWS Keys in GitHub) und eine automatisierte Validierung (mit `helm test`) nicht-funktionale Kernanforderungen sind.
+        *   Unter Berücksichtigung der Erkenntnis aus der Sprint-4-Retrospektive (Automatisierung des zweistufigen Upgrade-Prozesses) wurde das folgende, präzisierte Sprint-Ziel formuliert:
+            *   *"Eine sichere und voll-automatisierte CI/CD-Pipeline ist etabliert. Sie wird bei einem Push auf den `main`-Branch getriggert, authentifiziert sich sicher via OIDC bei AWS, installiert oder aktualisiert das Nextcloud Helm Chart im EKS-Cluster, löst das "Load Balancer Hostname"-Problem automatisiert und verifiziert das erfolgreiche Deployment durch die Ausführung der Helm-Tests."*
+    *   **Diskussion – Das "Was" (Auswahl der Sprint Backlog Items):**
+        *   Basierend auf dem Ziel wurden die folgenden User Stories als essentiell identifiziert:
+            *   `Nextcloud#20` (OIDC Authentifizierung): Dies ist die Grundvoraussetzung für jede sichere Interaktion zwischen GitHub und AWS und muss als Erstes umgesetzt werden.
+            *   `Nextcloud#21` (GitHub Actions Workflow): Dies ist die Kern-User-Story. Es wurde beschlossen, dass diese Story auch die automatische Ausführung der Helm-Tests (`Nextcloud#24`) am Ende des Deployments beinhalten soll, da dies ein integraler Bestandteil eines "guten" Deployments ist.
+            *   `Nextcloud#23` (Pipeline Status Badge): Eine kleine, aber sehr nützliche User Story, um die Transparenz zu erhöhen. Passt gut in den Sprint.
+        *   **Bewusste Entscheidung (De-Scoping):** Die User Story `Nextcloud#22` (Terraform Plan/Apply in CI/CD) wurde bewusst aus dem Sprint-Ziel und -Backlog herausgenommen. Die Automatisierung von Infrastrukturänderungen ist ein grosses, eigenes Thema. Für diesen Sprint liegt der Fokus klar auf dem **Application Deployment**. `#22` bleibt als wichtige Idee im Product Backlog.
+    *   **Diskussion – Das "Wie" (Grobe Planung der Umsetzung):**
+        1.  **Terraform-Vorbereitung für OIDC:** Zuerst muss die AWS-Infrastruktur angepasst werden. Eine neue IAM-Rolle für GitHub Actions wird via Terraform erstellt, die dem GitHub-Repository erlaubt, sich via OIDC zu authentifizieren. Dies ist der Hauptteil von `#20`.
+        2.  **GitHub-Konfiguration:** Die für das Deployment notwendigen Secrets (z.B. das RDS-Passwort) werden als "Repository Secrets" in GitHub hinterlegt, damit die Pipeline darauf zugreifen kann.
+        3.  **Workflow-Implementierung (`.github/workflows/deploy.yml`):** Der Workflow wird schrittweise aufgebaut:
+            *   Trigger auf `push` zum `main`-Branch.
+            *   Einrichten der OIDC-Berechtigungen im Job (`permissions: id-token: write`).
+            *   Nutzung der offiziellen `aws-actions` zum Konfigurieren der AWS-Credentials und der `kubeconfig`.
+            *   **Lösung für das "Upgrade"-Problem:** Der Workflow wird ein Skript enthalten, das nach einem initialen `helm upgrade --install` in einer Schleife den Load-Balancer-Hostnamen abfragt (`kubectl get svc...`). Sobald der Hostname verfügbar ist, wird ein zweites, finales `helm upgrade` mit dem korrekten `nextcloud.host`-Wert ausgeführt.
+            *   Als letzter Schritt im Job wird `helm test` ausgeführt.
+        4.  **Badge-Integration:** Sobald die Pipeline einmal gelaufen ist, wird der Markdown-Code für das Status-Badge aus GitHub kopiert und in die `README.md`-Datei eingefügt (`#23`).
+*   **Sprint-Ziel (committet für Sprint 5):**
+    *   "Eine sichere und voll-automatisierte CI/CD-Pipeline ist etabliert. Sie wird bei einem Push auf den `main`-Branch getriggert, authentifiziert sich sicher via OIDC bei AWS, installiert oder aktualisiert das Nextcloud Helm Chart im EKS-Cluster, löst das "Load Balancer Hostname"-Problem automatisiert und verifiziert das erfolgreiche Deployment durch die Ausführung der Helm-Tests."
+*   **Sprint Backlog (Committete User Stories für Sprint 5):**
+    *   `Nextcloud#20`: OIDC Authentifizierung für GitHub Actions zu AWS einrichten (via Terraform).
+    *   `Nextcloud#21`: GitHub Actions Workflow für Helm Chart Deployment erstellen (inkl. `helm test` Ausführung).
+    *   `Nextcloud#23`: Pipeline Status Badge im README anzeigen.
+*   **Wichtigste Daily Scrum Erkenntnis / Impediment:** *(Wird im Sprint ergänzt)*
+*   **Erreichtes Inkrement / Ergebnisse:** *(Wird im Sprint ergänzt)*
+*   **Sprint Review (Kurzfazit & Demo-Highlight):** *(Wird im Sprint ergänzt)*
+*   **Sprint Retrospektive (Wichtigste Aktion):** *(Wird im Sprint ergänzt)*
 
 ---
 
