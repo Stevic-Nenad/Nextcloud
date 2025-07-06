@@ -149,7 +149,7 @@ Die Lösung basiert vollständig auf "Infrastructure as Code" (IaC):
 - **Methodisches Vorgehen:** Agile Entwicklung nach **Scrum-Framework** mit iterativer Entwicklung und begleitender
   Dokumentation
 
-Dabei wird bei der Entwicklung des Projekts auf SCRUM basiertes, Agiles Entwickeln gesetzt.
+Dabei wird bei der Entwicklung des Projekts auf Scrum basiertes, Agiles Entwickeln gesetzt.
 
 ## 1.4 Zusammenfassung
 
@@ -189,7 +189,7 @@ und abgegrenzt:
 
 *Dieses Projekt folgt dem Scrum-Framework, um eine iterative Entwicklung und transparente Nachvollziehbarkeit zu
 gewährleisten. Alle Rollen werden durch mich, den Studierenden, wahrgenommen, die Prinzipien aber konsequent
-eingehalten. (So gut wie's ging)*
+eingehalten.*
 
 ## 2.1 Scrum
 
