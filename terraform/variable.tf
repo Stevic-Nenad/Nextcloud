@@ -57,6 +57,13 @@ variable "eks_cluster_version" {
   default     = "1.29" # As of mid-2024, 1.29 is a stable and supported version.
 }
 
+variable "eks_public_access_cidrs" {
+  description = "List of CIDR blocks. Indicates from which CIDR blocks find users matching clusters to ARN."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+
 variable "eks_node_instance_types" {
   description = "A list of EC2 instance types to use for the EKS worker nodes."
   type        = list(string)
@@ -78,9 +85,9 @@ variable "ecr_repository_name" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 variable "rds_pg_version" {
-  description = "The PostgreSQL engine version for the RDS instance."
+  description = "PostgreSQL engine version for RDS."
   type        = string
-  default     = "16.2" # Latest stable version of PostgreSQL 16.
+  default     = "17.2"
 }
 
 variable "rds_instance_class" {
