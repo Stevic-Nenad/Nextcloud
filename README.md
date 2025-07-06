@@ -4,8 +4,8 @@
 
 [![Deploy Nextcloud to EKS](https://github.com/Stevic-Nenad/Nextcloud/actions/workflows/deploy.yml/badge.svg?branch=master)](https://github.com/Stevic-Nenad/Nextcloud/actions/workflows/deploy.yml)
 
-**Student:** Nenad Stevic<br>
-**TBZ Lehrgang dipl. Informatiker/in HF - 3. Semester**<br>
+**Student:** Nenad Stevic
+**TBZ Lehrgang dipl. Informatiker/in HF - 3. Semester**
 **Abgabedatum:** 09.07.2025
 
 # Inhaltsverzeichnis
