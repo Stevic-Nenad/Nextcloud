@@ -84,18 +84,8 @@ jobs:
           fi
           helm upgrade --install nextcloud ./charts/nextcloud-chart \
             --namespace nextcloud \
-            --set nextcloud.host="$HOSTNAME" \
-            --set database.host="${{ inputs.RDS_DB_HOST }}" \
-            --set database.password="${{ secrets.RDS_DB_PASSWORD }}" \
-            --set nextcloud.admin.password="${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
-
-      - name: Wait for Nextcloud to become ready after config update
-        run: |
-          echo "Waiting for deployment to stabilize after setting hostname..."
-          # This command waits until the deployment reports that all its replicas are updated and available.
-          # It has a timeout of 2 minutes, which should be more than enough.
-          kubectl rollout status deployment/nextcloud -n nextcloud --timeout=2m
-          echo "Deployment is stable. Proceeding to tests."
+            --reuse-values \
+            --set nextcloud.host="$HOSTNAME"
 
       - name: Run Helm Tests
         if: success()
