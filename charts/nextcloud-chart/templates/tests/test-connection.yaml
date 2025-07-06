@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "nextcloud.fullname" . }}-test-connection"
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
 spec:
   containers:
     - name: curl-test
