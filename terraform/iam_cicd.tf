@@ -74,7 +74,8 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "iam:*", # Needed for creating roles, policies, etc.
       "s3:*",  # Needed for backend state
       "dynamodb:*",
-      "ecr:*"
+      "ecr:*",
+      "secretsmanager:*"
     ]
     # In a real production scenario, this would be scoped down further.
     # For this project, allowing full control over these services is pragmatic.
