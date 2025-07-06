@@ -42,3 +42,5 @@ node_modules/
 jspm_packages/
 .npm/
 .node_repl_history
+
+._codebase_digest.txt
