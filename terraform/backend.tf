@@ -5,6 +5,5 @@ terraform {
     region         = "eu-central-1"
     dynamodb_table = "nenad-stevic-nextcloud-tfstate-lock"
     encrypt        = true
-    profile        = "nextcloud-project"
   }
 }
