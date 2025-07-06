@@ -5,35 +5,18 @@ metadata:
   labels:
     {{- include "nextcloud.labels" . | nindent 4 }}
   annotations:
+    # This is the magic annotation that makes this a Helm test.
     "helm.sh/hook": test
 spec:
   containers:
-    - name: curl-test
-      # Use a more capable image that has /bin/sh
-      image: curlimages/curl:8.5.0
-      # We replace the simple command with a shell command that retries.
-      command: ['/bin/sh', '-c']
-      args:
-        - |
-          set -ex
-          echo "Starting Nextcloud readiness test..."
-          URL="http://{{ include "nextcloud.fullname" . }}:{{ .Values.service.port }}/status.php"
-
-          # Retry loop: Try for up to 90 seconds (18 attempts * 5s sleep).
-          # This gives Nextcloud plenty of time to finish its background installation.
-          for i in $(seq 1 18); do
-            # Use curl:
-            # -s: silent mode
-            # -f: fail silently on server errors (return non-zero exit code)
-            # -o /dev/null: discard the output
-            if curl -s -f -o /dev/null "$URL"; then
-              echo "✅ Nextcloud is ready at $URL"
-              exit 0
-            fi
-            echo "Attempt $i/18 failed. Nextcloud not ready yet. Retrying in 5 seconds..."
-            sleep 5
-          done
-
-          echo "❌ ERROR: Nextcloud did not become ready after 90 seconds."
-          exit 1
+    - name: wget
+      # We use a busybox image because it's small and contains wget.
+      image: busybox
+      command: ['wget']
+      # We target the service internally via its Kubernetes service name.
+      # The /status.php endpoint is a good health check for Nextcloud.
+      # The '--spider' flag tells wget to check for existence without downloading.
+      # The '-T 10' sets a 10-second timeout.
+      args: ['-q', '--spider', '-T', '10', 'http://{{ include "nextcloud.fullname" . }}:{{ .Values.service.port }}/status.php']
+  # Tests should not run forever. If they fail, they should just fail.
   restartPolicy: Never
