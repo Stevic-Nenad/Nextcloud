@@ -57,7 +57,7 @@ jobs:
     name: "Setup: 2. Deploy Application"
     if: github.event.inputs.action == 'setup'
     needs: terraform-apply # Depends on the successful infrastructure creation
-    uses: ./.github/workflows/reusable-deploy-app.yml@main
+    uses: ./.github/workflows/reusable-deploy-app.yml
     with:
       EKS_CLUSTER_NAME: ${{ needs.terraform-apply.outputs.eks_cluster_name }}
       RDS_DB_HOST: ${{ needs.terraform-apply.outputs.rds_host }}
