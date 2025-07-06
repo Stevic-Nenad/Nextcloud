@@ -84,8 +84,10 @@ jobs:
           fi
           helm upgrade --install nextcloud ./charts/nextcloud-chart \
             --namespace nextcloud \
-            --reuse-values \
-            --set nextcloud.host="$HOSTNAME"
+            --set nextcloud.host="$HOSTNAME" \
+            --set database.host="${{ inputs.RDS_DB_HOST }}" \
+            --set database.password="${{ secrets.RDS_DB_PASSWORD }}" \
+            --set nextcloud.admin.password="${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
 
       - name: Run Helm Tests
         if: success()
