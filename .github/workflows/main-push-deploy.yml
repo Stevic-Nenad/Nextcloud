@@ -8,6 +8,9 @@ on:
 jobs:
   get-infra-data:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     outputs:
       eks_cluster_name: ${{ steps.tf_outputs.outputs.eks_cluster_name }}
       rds_host: ${{ steps.tf_outputs.outputs.rds_host }}
