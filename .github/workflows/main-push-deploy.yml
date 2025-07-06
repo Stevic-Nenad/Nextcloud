@@ -37,6 +37,9 @@ jobs:
   call-reusable-deployment:
     name: "Deploy Application"
     needs: get-infra-data
+    permissions:
+      id-token: write
+      contents: read
     uses: ./.github/workflows/reusable-deploy-app.yml
     with:
       EKS_CLUSTER_NAME: ${{ needs.get-infra-data.outputs.eks_cluster_name }}
