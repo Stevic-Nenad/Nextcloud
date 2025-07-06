@@ -29,3 +29,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 {{- end }}
+{{/*
+Create selector labels.
+These are the labels that a service selector will use to find the pods.
+*/}}
+{{- define "nextcloud.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
