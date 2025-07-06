@@ -32,7 +32,10 @@ jobs:
         run: |
           cd ./terraform
           echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> $GITHUB_OUTPUT
-          echo "rds_host=$(terraform output -raw rds_instance_endpoint)" >> $GITHUB_OUTPUT
+          # Strip the :5432 port from the RDS endpoint
+          RDS_ENDPOINT=$(terraform output -raw rds_instance_endpoint)
+          RDS_HOST=${RDS_ENDPOINT%:*}
+          echo "rds_host=$RDS_HOST" >> $GITHUB_OUTPUT
 
   call-reusable-deployment:
     name: "Deploy Application"
