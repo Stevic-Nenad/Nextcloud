@@ -64,9 +64,6 @@ spec:
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
-            - name: nextcloud-config
-              mountPath: /var/www/html/config/autoconfig.php
-              subPath: nextcloud-config.php
       volumes:
         - name: nextcloud-data
           {{- if .Values.persistence.enabled }}
@@ -75,6 +72,3 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        - name: nextcloud-config
-          configMap:
-            name: {{ include "nextcloud.fullname" . }}-config
