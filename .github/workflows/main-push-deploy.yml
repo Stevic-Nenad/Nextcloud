@@ -34,7 +34,7 @@ jobs:
   call-reusable-deployment:
     name: "Deploy Application"
     needs: get-infra-data
-    uses: ./.github/workflows/reusable-deploy-app.yml@main
+    uses: ./.github/workflows/reusable-deploy-app.yml
     with:
       EKS_CLUSTER_NAME: ${{ needs.get-infra-data.outputs.eks_cluster_name }}
       RDS_DB_HOST: ${{ needs.get-infra-data.outputs.rds_host }}
