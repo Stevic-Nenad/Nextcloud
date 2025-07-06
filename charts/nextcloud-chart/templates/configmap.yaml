@@ -17,6 +17,7 @@ data:
       array (
         0 => 'localhost',
         1 => '{{ .Release.Name }}-{{ .Chart.Name }}',
-        2 => '{{ .Values.nextcloud.host }}',
+        2 => '{{ printf "%s.%s.svc.cluster.local" (include "nextcloud.fullname" .) .Release.Namespace }}',
+        3 => '{{ .Values.nextcloud.host }}',
       ),
     );
